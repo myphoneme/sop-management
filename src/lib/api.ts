@@ -7,8 +7,20 @@ import type {
   UserPayload,
 } from "@/lib/types";
 
+function getDefaultApiBaseUrl() {
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    return "http://127.0.0.1:8000";
+  }
+
+  if (typeof window !== "undefined" && window.location.hostname === "127.0.0.1") {
+    return "http://127.0.0.1:8000";
+  }
+
+  return "https://fastapi.phoneme.in";
+}
+
 export const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"
+  import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl()
 ).replace(/\/$/, "");
 
 export class ApiError extends Error {
