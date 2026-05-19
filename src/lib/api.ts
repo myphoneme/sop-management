@@ -7,21 +7,30 @@ import type {
   UserPayload,
 } from "@/lib/types";
 
+const LOCAL_API_BASE_URL = "http://127.0.0.1:8000";
+const REMOTE_API_BASE_URL = "https://fastapi.phoneme.in";
+
+function isLocalFrontend() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+}
+
 function getDefaultApiBaseUrl() {
-  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
-    return "http://127.0.0.1:8000";
+  if (isLocalFrontend()) {
+    return LOCAL_API_BASE_URL;
   }
 
-  if (typeof window !== "undefined" && window.location.hostname === "127.0.0.1") {
-    return "http://127.0.0.1:8000";
-  }
-
-  return "https://fastapi.phoneme.in";
+  return REMOTE_API_BASE_URL;
 }
 
 export const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl()
 ).replace(/\/$/, "");
+
+let activeApiBaseUrl = API_BASE_URL;
 
 export class ApiError extends Error {
   status: number;
@@ -35,27 +44,55 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...init?.headers,
-    },
-  });
+function getRequestBaseUrls() {
+  const urls = [API_BASE_URL];
 
-  const text = await response.text();
-  const data = text ? safeJson(text) : undefined;
-
-  if (!response.ok) {
-    const message =
-      typeof data === "object" && data && "detail" in data
-        ? String((data as { detail: unknown }).detail)
-        : `Request failed with status ${response.status}`;
-    throw new ApiError(message, response.status, data);
+  if (isLocalFrontend() && API_BASE_URL !== REMOTE_API_BASE_URL) {
+    urls.push(REMOTE_API_BASE_URL);
   }
 
-  return data as T;
+  return Array.from(new Set(urls.map((url) => url.replace(/\/$/, ""))));
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  let lastNetworkError: unknown;
+
+  for (const baseUrl of getRequestBaseUrls()) {
+    let response: Response;
+
+    try {
+      response = await fetch(`${baseUrl}${path}`, {
+        ...init,
+        credentials: init?.credentials || "include",
+        headers: {
+          Accept: "application/json",
+          ...init?.headers,
+        },
+      });
+    } catch (error) {
+      lastNetworkError = error;
+      continue;
+    }
+
+    activeApiBaseUrl = baseUrl;
+
+    const text = await response.text();
+    const data = text ? safeJson(text) : undefined;
+
+    if (!response.ok) {
+      const message =
+        typeof data === "object" && data && "detail" in data
+          ? String((data as { detail: unknown }).detail)
+          : `Request failed with status ${response.status}`;
+      throw new ApiError(message, response.status, data);
+    }
+
+    return data as T;
+  }
+
+  throw lastNetworkError instanceof Error
+    ? lastNetworkError
+    : new Error("Unable to reach API.");
 }
 
 function safeJson(text: string) {
@@ -83,7 +120,7 @@ export function resolveAssetUrl(path?: string | null) {
     return path;
   }
 
-  return `${API_BASE_URL}/${path.replace(/^\/+/, "")}`;
+  return `${activeApiBaseUrl}/${path.replace(/^\/+/, "")}`;
 }
 
 export async function getPosts() {
@@ -143,6 +180,10 @@ export async function login(email: string, password: string) {
   });
 }
 
+export async function getCurrentUser() {
+  return request<ApiUser>("/auth/me", { cache: "no-store" });
+}
+
 export async function getUsers() {
   try {
     return await request<ApiUser[]>("/users", { cache: "no-store" });
@@ -182,7 +223,6 @@ export async function createSop(payload: SopPayload) {
   body.append("category_id", String(payload.categoryId));
   body.append("title", payload.title);
   body.append("post", payload.content);
-  body.append("created_by", String(payload.authorId));
   body.append("image", payload.image);
 
   return request<SopPost>("/posts", {
@@ -197,7 +237,6 @@ export async function updateSop(id: number, payload: SopPayload) {
   body.append("category_id", String(payload.categoryId));
   body.append("title", payload.title);
   body.append("post", payload.content);
-  body.append("created_by", String(payload.authorId));
   body.append("image", payload.image);
 
   return request<SopPost>(`/posts/${id}`, {

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { clearSession, getStoredSession, loginPath, type StoredSession } from "@/lib/auth";
+import { clearSession, getCurrentSession, loginPath, type StoredSession } from "@/lib/auth";
 import { resolveAssetUrl } from "@/lib/api";
 import { cn, initials } from "@/lib/utils";
 
@@ -43,11 +43,19 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let active = true;
     const timeout = window.setTimeout(() => {
-      setSession(getStoredSession());
+      getCurrentSession().then((currentSession) => {
+        if (active) {
+          setSession(currentSession);
+        }
+      });
     }, 0);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
   }, []);
 
   useEffect(() => {

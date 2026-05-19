@@ -15,7 +15,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getPost, resolveAssetUrl } from "@/lib/api";
-import { getStoredSession, loginPath, type StoredSession } from "@/lib/auth";
+import { getCurrentSession, loginPath, type StoredSession } from "@/lib/auth";
 import type { SopPost } from "@/lib/types";
 import { formatDate, readingMinutes } from "@/lib/utils";
 
@@ -26,11 +26,19 @@ export function SopDetail({ id }: { id: number }) {
   const [session, setSession] = useState<StoredSession | null>(null);
 
   useEffect(() => {
+    let active = true;
     const timeout = window.setTimeout(() => {
-      setSession(getStoredSession());
+      getCurrentSession().then((currentSession) => {
+        if (active) {
+          setSession(currentSession);
+        }
+      });
     }, 0);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
   }, []);
 
   useEffect(() => {

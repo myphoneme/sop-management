@@ -25,7 +25,7 @@ import {
   getPosts,
   updateCategory,
 } from "@/lib/api";
-import { getStoredSession, loginPath } from "@/lib/auth";
+import { getCurrentSession, loginPath } from "@/lib/auth";
 import type { Category, SopPost } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
@@ -47,18 +47,24 @@ export function CategoryManager() {
   const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const timeout = window.setTimeout(() => {
-      const storedSession = getStoredSession();
+      getCurrentSession().then((storedSession) => {
+        if (!active) return;
 
-      if (!storedSession) {
-        navigate(loginPath(pathname || "/dashboard/categories"), { replace: true });
-        return;
-      }
+        if (!storedSession) {
+          navigate(loginPath(pathname || "/dashboard/categories"), { replace: true });
+          return;
+        }
 
-      setSessionChecked(true);
+        setSessionChecked(true);
+      });
     }, 0);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
   }, [navigate, pathname]);
 
   useEffect(() => {

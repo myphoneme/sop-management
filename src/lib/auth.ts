@@ -1,6 +1,7 @@
 "use client";
 
 import type { LoginResponse } from "@/lib/types";
+import { getCurrentUser } from "@/lib/api";
 
 const SESSION_KEY = "sop_studio_session";
 
@@ -33,6 +34,23 @@ export function getStoredSession() {
 
   try {
     return JSON.parse(raw) as StoredSession;
+  } catch {
+    window.localStorage.removeItem(SESSION_KEY);
+    return null;
+  }
+}
+
+export async function getCurrentSession() {
+  try {
+    const user = await getCurrentUser();
+    const session: StoredSession = {
+      token: "",
+      tokenType: "cookie",
+      user,
+    };
+
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    return session;
   } catch {
     window.localStorage.removeItem(SESSION_KEY);
     return null;

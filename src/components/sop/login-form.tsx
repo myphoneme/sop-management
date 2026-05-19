@@ -45,12 +45,12 @@ export function LoginForm() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 z-0 opacity-100"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.14),_transparent_34%),radial-gradient(circle_at_75%_25%,_rgba(244,121,32,0.18),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.10),_transparent_30%),linear-gradient(135deg,_#050505_0%,_#090909_48%,_#120b06_100%)]" />
-          <div className="absolute left-[8%] top-[16%] h-[26rem] w-[26rem] rounded-full bg-sky-500/12 blur-3xl" />
-          <div className="absolute right-[12%] top-[18%] h-[24rem] w-[24rem] rounded-full bg-orange-500/18 blur-3xl" />
-          <div className="absolute bottom-[10%] left-[7%] h-[16rem] w-[16rem] rounded-full bg-slate-900/70 blur-3xl" />
-          <div className="absolute right-[10%] bottom-[12%] h-[20rem] w-[20rem] rounded-full bg-slate-800/60 blur-3xl" />
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] opacity-10" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.20),_transparent_34%),radial-gradient(circle_at_75%_25%,_rgba(244,121,32,0.18),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(15,23,42,0.08),_transparent_28%),linear-gradient(135deg,_#fff7ed_0%,_#f8fafc_48%,_#ffffff_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.14),_transparent_34%),radial-gradient(circle_at_75%_25%,_rgba(244,121,32,0.18),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.10),_transparent_30%),linear-gradient(135deg,_#050505_0%,_#090909_48%,_#120b06_100%)]" />
+          <div className="absolute left-[8%] top-[16%] h-[26rem] w-[26rem] rounded-full bg-sky-300/30 blur-3xl dark:bg-sky-500/12" />
+          <div className="absolute right-[12%] top-[18%] h-[24rem] w-[24rem] rounded-full bg-orange-300/30 blur-3xl dark:bg-orange-500/18" />
+          <div className="absolute bottom-[10%] left-[7%] h-[16rem] w-[16rem] rounded-full bg-slate-200/70 blur-3xl dark:bg-slate-900/70" />
+          <div className="absolute right-[10%] bottom-[12%] h-[20rem] w-[20rem] rounded-full bg-slate-200/60 blur-3xl dark:bg-slate-800/60" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.04)_1px,transparent_1px)] bg-[size:64px_64px] opacity-60 dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] dark:opacity-10" />
         </div>
 
         <section className="relative z-10 hidden gap-4 lg:grid">
@@ -65,14 +65,12 @@ export function LoginForm() {
               SOP Studio
             </p>
             <h1
-              className="max-w-2xl text-5xl font-black leading-[1.05] tracking-normal text-white drop-shadow-[0_4px_22px_rgba(0,0,0,0.9)]"
-              style={{ textShadow: "0 4px 28px rgba(0,0,0,0.95)" }}
+              className="max-w-2xl text-5xl font-black leading-[1.05] tracking-normal text-slate-950 drop-shadow-[0_8px_30px_rgba(255,255,255,0.95)] dark:text-white dark:drop-shadow-[0_4px_22px_rgba(0,0,0,0.9)]"
             >
               Sign in to manage procedures, categories, and publishing.
             </h1>
             <p
-              className="max-w-xl text-base leading-7 text-slate-200 drop-shadow-[0_2px_16px_rgba(0,0,0,0.8)]"
-              style={{ textShadow: "0 2px 18px rgba(0,0,0,0.85)" }}
+              className="max-w-xl text-base leading-7 text-slate-700 drop-shadow-[0_8px_24px_rgba(255,255,255,0.9)] dark:text-slate-200 dark:drop-shadow-[0_2px_16px_rgba(0,0,0,0.8)]"
             >
               Authentication uses the existing FastAPI login route and keeps the returned session locally for the admin workspace.
             </p>
@@ -81,7 +79,7 @@ export function LoginForm() {
 
         <form
           onSubmit={onSubmit}
-          className="relative z-10 grid gap-5 rounded-3xl border border-white/10 bg-[#101010]/68 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+          className="relative z-10 grid gap-5 rounded-3xl border border-white/80 bg-white/82 p-6 text-slate-950 shadow-[0_24px_80px_rgba(15,23,42,0.16)] backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/78 dark:text-white dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
         >
           <div className="grid gap-2">
             <div className="flex h-12 w-12 items-center justify-center rounded-md bg-[#f47920] text-white">

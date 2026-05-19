@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { getUsers } from "@/lib/api";
-import { getStoredSession, loginPath } from "@/lib/auth";
+import { getCurrentSession, loginPath } from "@/lib/auth";
 import type { ApiUser } from "@/lib/types";
 import { initials } from "@/lib/utils";
 
@@ -30,18 +30,24 @@ export function UserManager() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
     const timeout = window.setTimeout(() => {
-      const storedSession = getStoredSession();
+      getCurrentSession().then((storedSession) => {
+        if (!active) return;
 
-      if (!storedSession) {
-        navigate(loginPath(pathname || "/dashboard/users"), { replace: true });
-        return;
-      }
+        if (!storedSession) {
+          navigate(loginPath(pathname || "/dashboard/users"), { replace: true });
+          return;
+        }
 
-      setSessionChecked(true);
+        setSessionChecked(true);
+      });
     }, 0);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
   }, [navigate, pathname]);
 
   useEffect(() => {

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { createSop, getCategories, getPost, resolveAssetUrl, updateSop } from "@/lib/api";
-import { getStoredSession, loginPath, type StoredSession } from "@/lib/auth";
+import { getCurrentSession, loginPath } from "@/lib/auth";
 import type { Category, SopPost } from "@/lib/types";
 import { stripHtml } from "@/lib/utils";
 
@@ -27,7 +27,6 @@ export function SopForm({ mode, sopId }: SopFormProps) {
   const { showToast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [existingSop, setExistingSop] = useState<SopPost | null>(null);
-  const [session, setSession] = useState<StoredSession | null>(null);
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [tagsValue, setTagsValue] = useState("");
@@ -40,19 +39,24 @@ export function SopForm({ mode, sopId }: SopFormProps) {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
     const timeout = window.setTimeout(() => {
-      const session = getStoredSession();
+      getCurrentSession().then((session) => {
+        if (!active) return;
 
-      if (!session) {
-        navigate(loginPath(pathname || "/dashboard/sops/new"), { replace: true });
-        return;
-      }
+        if (!session) {
+          navigate(loginPath(pathname || "/dashboard/sops/new"), { replace: true });
+          return;
+        }
 
-      setSession(session);
-      setSessionChecked(true);
+        setSessionChecked(true);
+      });
     }, 0);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
   }, [navigate, pathname]);
 
   useEffect(() => {
@@ -100,7 +104,6 @@ export function SopForm({ mode, sopId }: SopFormProps) {
   const canSave =
     title.trim().length > 2 &&
     Number(categoryId) > 0 &&
-    Boolean(session?.user.id) &&
     stripHtml(content).length > 5 &&
     Boolean(image);
 
@@ -126,7 +129,6 @@ export function SopForm({ mode, sopId }: SopFormProps) {
         title: title.trim(),
         categoryId: Number(categoryId),
         content,
-        authorId: session?.user.id || 0,
         image,
       };
 

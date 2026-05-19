@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SopCard } from "@/components/sop/sop-card";
 import { getCategories, getPosts, resolveAssetUrl } from "@/lib/api";
-import { getStoredSession, loginPath, type StoredSession } from "@/lib/auth";
+import { getCurrentSession, loginPath, type StoredSession } from "@/lib/auth";
 import type { Category, SopPost } from "@/lib/types";
 import { cn, stripHtml } from "@/lib/utils";
 
@@ -55,11 +55,19 @@ export function PublicLibrary() {
   const featuredPosts = useMemo(() => filteredPosts.slice(0, 5), [filteredPosts]);
 
   useEffect(() => {
+    let active = true;
     const timeout = window.setTimeout(() => {
-      setSession(getStoredSession());
+      getCurrentSession().then((currentSession) => {
+        if (active) {
+          setSession(currentSession);
+        }
+      });
     }, 0);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
   }, []);
 
   useEffect(() => {
