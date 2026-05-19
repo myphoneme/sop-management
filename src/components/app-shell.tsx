@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   BookOpenCheck,
   FilePlus2,
@@ -36,8 +35,8 @@ const dashboardLinks = [
 ];
 
 export function AppShell({ children, variant = "public" }: AppShellProps) {
-  const pathname = usePathname();
-  const router = useRouter();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [session, setSession] = useState<StoredSession | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -99,7 +98,7 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
     clearSession();
     setSession(null);
     setProfileOpen(false);
-    router.push("/");
+    navigate("/");
   }
 
   const dashboardTheme = variant === "dashboard" && theme === "dark";
@@ -123,7 +122,7 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
       >
         <div className="mx-auto flex h-20 w-full max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-8">
-            <Link href="/" className="group flex items-center gap-4 transition-transform hover:scale-[1.02]">
+            <Link to="/" className="group flex items-center gap-4 transition-transform hover:scale-[1.02]">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#f47920] to-[#cf5f0d] text-white shadow-lg shadow-orange-500/20 transition-shadow group-hover:shadow-orange-500/30">
                 <BookOpenCheck className="h-6 w-6" />
               </div>
@@ -235,7 +234,7 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
                             : "text-slate-700 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-white/5 dark:hover:text-white",
                         )}
                       >
-                        <Link href={dashboardHref}>
+                        <Link to={dashboardHref}>
                           <LayoutDashboard className="h-4 w-4" />
                           Dashboard
                         </Link>
@@ -253,7 +252,7 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
               </div>
             ) : (
               <Button asChild variant="ghost" className="h-10 w-10 rounded-xl p-0">
-                <Link href={loginPath(pathname || "/dashboard")} title="Sign In">
+                <Link to={loginPath(pathname || "/dashboard")} title="Sign In">
                   <LogIn className="h-5 w-5" />
                 </Link>
               </Button>
@@ -284,7 +283,7 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    to={item.href}
                     className={cn(
                       "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition",
                       dashboardTheme
@@ -323,7 +322,6 @@ function ProfileAvatar({
 
   if (imageUrl) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={imageUrl}
         alt=""
@@ -360,7 +358,7 @@ function TopLink({
 }) {
   return (
     <Link
-      href={href}
+      to={href}
       className={cn(
         "relative inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-bold transition-all duration-200",
         dashboardTheme

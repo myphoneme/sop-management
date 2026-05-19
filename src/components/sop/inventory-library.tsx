@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -179,11 +179,11 @@ export function InventoryLibrary() {
                 We couldn&apos;t find any SOPs matching your search criteria. Try adjusting your filters or create a new one.
               </p>
               <div className="mt-8 flex items-center gap-4">
-                <Button variant="outline" onClick={() => { setQuery(""); setCategoryId("all"); }} className="rounded-xl font-bold">
+                <Button variant="secondary" onClick={() => { setQuery(""); setCategoryId("all"); }} className="rounded-xl font-bold">
                   Clear Filters
                 </Button>
                 <Button asChild className="rounded-xl font-bold">
-                  <Link href={createHref}>Create New SOP</Link>
+                  <Link to={createHref}>Create New SOP</Link>
                 </Button>
               </div>
             </div>
@@ -199,7 +199,7 @@ export function InventoryLibrary() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 border-t border-slate-100 pt-8 dark:border-white/5">
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="icon"
                     onClick={() => {
                         setCurrentPage((p) => Math.max(1, p - 1));
@@ -215,7 +215,7 @@ export function InventoryLibrary() {
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                       <Button
                         key={page}
-                        variant={currentPage === page ? "default" : "outline"}
+                        variant={currentPage === page ? "primary" : "secondary"}
                         onClick={() => {
                             setCurrentPage(page);
                             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -233,7 +233,7 @@ export function InventoryLibrary() {
                   </div>
 
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="icon"
                     onClick={() => {
                         setCurrentPage((p) => Math.min(totalPages, p + 1));

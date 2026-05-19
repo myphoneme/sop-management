@@ -1,8 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, KeyRound, Loader2, LogIn, Mail } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
@@ -12,7 +11,7 @@ import { login } from "@/lib/api";
 import { storeSession } from "@/lib/auth";
 
 export function LoginForm() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -29,7 +28,7 @@ export function LoginForm() {
       const redirect =
         new URLSearchParams(window.location.search).get("redirect") ||
         "/dashboard";
-      router.push(redirect.startsWith("/") ? redirect : "/dashboard");
+      navigate(redirect.startsWith("/") ? redirect : "/dashboard");
     } catch (submitError) {
       setError(
         submitError instanceof Error ? submitError.message : "Login failed.",
@@ -56,7 +55,7 @@ export function LoginForm() {
 
         <section className="relative z-10 hidden gap-4 lg:grid">
           <Button asChild variant="ghost" className="w-fit">
-            <Link href="/">
+            <Link to="/">
               <ArrowLeft className="h-4 w-4" />
               Library
             </Link>

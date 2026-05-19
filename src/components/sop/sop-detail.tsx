@@ -1,9 +1,7 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element */
-
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   CalendarDays,
@@ -69,7 +67,7 @@ export function SopDetail({ id }: { id: number }) {
       <article className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Button asChild variant="ghost">
-            <Link href="/">
+            <Link to="/">
               <ArrowLeft className="h-4 w-4" />
               Library
             </Link>
@@ -77,7 +75,7 @@ export function SopDetail({ id }: { id: number }) {
           {sop ? (
             <Button asChild variant="secondary">
               <Link
-                href={
+                to={
                   session
                     ? `/dashboard/sops/${sop.id}/edit`
                     : loginPath(`/dashboard/sops/${sop.id}/edit`)

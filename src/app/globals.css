@@ -262,6 +262,47 @@ textarea {
   color: inherit;
 }
 
+.sop-content [style*="color: white"],
+.sop-content [style*="color:white"],
+.sop-content [style*="color: #fff"],
+.sop-content [style*="color:#fff"],
+.sop-content [style*="color: #ffffff"],
+.sop-content [style*="color:#ffffff"],
+.sop-content [style*="color: rgb(255, 255, 255)"],
+.sop-content [style*="color:rgb(255, 255, 255)"],
+.sop-content [style*="color: rgb(248, 250, 252)"],
+.sop-content [style*="color:rgb(248, 250, 252)"],
+.sop-content [style*="color: rgb(241, 245, 249)"],
+.sop-content [style*="color:rgb(241, 245, 249)"] {
+  color: #334155 !important;
+}
+
+.dark .sop-content [style*="color: white"],
+.dark .sop-content [style*="color:white"],
+.dark .sop-content [style*="color: #fff"],
+.dark .sop-content [style*="color:#fff"],
+.dark .sop-content [style*="color: #ffffff"],
+.dark .sop-content [style*="color:#ffffff"],
+.dark .sop-content [style*="color: rgb(255, 255, 255)"],
+.dark .sop-content [style*="color:rgb(255, 255, 255)"],
+.dark .sop-content [style*="color: rgb(248, 250, 252)"],
+.dark .sop-content [style*="color:rgb(248, 250, 252)"],
+.dark .sop-content [style*="color: rgb(241, 245, 249)"],
+.dark .sop-content [style*="color:rgb(241, 245, 249)"] {
+  color: #e2e8f0 !important;
+}
+
+.dark .sop-content [style*="color"],
+.dark .sop-editor [style*="color"] {
+  color: revert-layer;
+}
+
+.sop-content [style*="background-color"],
+.sop-editor [style*="background-color"] {
+  border-radius: 0.2rem;
+  padding-inline: 0.08em;
+}
+
 .sop-content img {
   border-radius: 0.5rem;
   max-width: 100%;

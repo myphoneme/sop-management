@@ -1,9 +1,7 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element */
-
 import { useEffect, useMemo, useState, useRef } from "react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
   BookOpenText,
@@ -253,7 +251,7 @@ export function PublicLibrary() {
                 </div>
                 <div className="h-8 w-px bg-slate-200 dark:bg-white/10" />
                 <Button asChild variant="ghost" className="h-auto p-0 font-bold text-[#f47920] hover:bg-transparent">
-                  <Link href={createHref} className="flex items-center gap-1">
+                  <Link to={createHref} className="flex items-center gap-1">
                     Start Writing <ChevronRight className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -317,7 +315,7 @@ export function PublicLibrary() {
               We couldn&apos;t find any SOPs matching your search or filters. Try adjusting them or creating a new one.
             </p>
             <Button asChild className="mt-8 rounded-xl font-bold">
-              <Link href={createHref}>Create New SOP</Link>
+              <Link to={createHref}>Create New SOP</Link>
             </Button>
           </div>
         ) : (
@@ -341,7 +339,7 @@ function getPostTime(post: SopPost) {
 function FeaturedSlide({ post }: { post: SopPost }) {
   return (
     <Link
-      href={`/sops/${post.id}`}
+      to={`/sops/${post.id}`}
       className="group relative block h-full w-full overflow-hidden"
     >
       {post.image ? (

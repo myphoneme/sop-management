@@ -1,9 +1,7 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element */
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
   BarChart3,
@@ -26,6 +24,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import { deleteSop, getCategories, getPosts, resolveAssetUrl } from "@/lib/api";
 import { getStoredSession, loginPath } from "@/lib/auth";
 import type { Category, SopPost } from "@/lib/types";
@@ -88,8 +87,9 @@ const categoryPalette = [
 ];
 
 export function DashboardHome() {
-  const pathname = usePathname();
-  const router = useRouter();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
   const [posts, setPosts] = useState<SopPost[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -104,7 +104,7 @@ export function DashboardHome() {
       const storedSession = getStoredSession();
 
       if (!storedSession) {
-        router.replace(loginPath(pathname || "/dashboard"));
+        navigate(loginPath(pathname || "/dashboard"), { replace: true });
         return;
       }
 
@@ -112,7 +112,7 @@ export function DashboardHome() {
     }, 0);
 
     return () => window.clearTimeout(timeout);
-  }, [pathname, router]);
+  }, [navigate, pathname]);
 
   useEffect(() => {
     if (!sessionChecked) {
@@ -209,6 +209,7 @@ export function DashboardHome() {
   const topCategory = categoryBreakdown[0] || null;
 
   async function onDelete(id: number) {
+    const post = posts.find((item) => item.id === id);
     const confirmed = window.confirm("Delete this SOP?");
     if (!confirmed) {
       return;
@@ -220,8 +221,19 @@ export function DashboardHome() {
     try {
       await deleteSop(id);
       setPosts((current) => current.filter((post) => post.id !== id));
+      showToast({
+        tone: "success",
+        title: "SOP deleted",
+        description: `${post?.title || "The SOP"} was removed from inventory.`,
+      });
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete SOP.");
+      const message = deleteError instanceof Error ? deleteError.message : "Unable to delete SOP.";
+      setError(message);
+      showToast({
+        tone: "error",
+        title: "SOP was not deleted",
+        description: message,
+      });
     } finally {
       setDeletingId(null);
     }
@@ -347,7 +359,7 @@ export function DashboardHome() {
                       asChild
                       className="mx-auto border border-orange-300/20 bg-[#f47920] hover:bg-[#cf5f0d]"
                     >
-                      <Link href="/dashboard/sops/new">
+                      <Link to="/dashboard/sops/new">
                         <FilePlus2 className="h-4 w-4" />
                         New SOP
                       </Link>
@@ -396,7 +408,7 @@ export function DashboardHome() {
                             </td>
                             <td className="max-w-sm px-4 py-2.5">
                               <Link
-                                href={`/sops/${post.id}`}
+                                to={`/sops/${post.id}`}
                                 className="line-clamp-1 font-black text-slate-950 hover:text-orange-300 dark:text-white"
                               >
                                 {post.title}
@@ -434,7 +446,7 @@ export function DashboardHome() {
                                   size="sm"
                                 className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
                                 >
-                                  <Link href={`/dashboard/sops/${post.id}/edit`}>
+                                  <Link to={`/dashboard/sops/${post.id}/edit`}>
                                     <PenLine className="h-4 w-4" />
                                     Edit
                                   </Link>
@@ -921,7 +933,13 @@ function InsightRow({
 }
 
 function CategoryChip({ label }: { label: string }) {
-  const tones: Tone[] = ["blue", "emerald", "amber", "violet", "slate"];
+  const tones: Array<"blue" | "emerald" | "amber" | "violet" | "slate"> = [
+    "blue",
+    "emerald",
+    "amber",
+    "violet",
+    "slate",
+  ];
   const index =
     label.split("").reduce((total, char) => total + char.charCodeAt(0), 0) %
     tones.length;

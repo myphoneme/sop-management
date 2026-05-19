@@ -2,12 +2,18 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import {
+  AlignCenter,
+  AlignJustify,
+  AlignLeft,
+  AlignRight,
   Bold,
   Heading2,
+  Highlighter,
   Italic,
   Image as ImageIcon,
   List,
   ListOrdered,
+  Palette,
   Quote,
   Redo2,
   RemoveFormatting,
@@ -34,6 +40,31 @@ const tools = [
   { label: "Clear", command: "removeFormat", icon: RemoveFormatting },
   { label: "Undo", command: "undo", icon: Undo2 },
   { label: "Redo", command: "redo", icon: Redo2 },
+];
+
+const textColors = [
+  { label: "Slate", value: "#0f172a" },
+  { label: "Orange", value: "#f47920" },
+  { label: "Blue", value: "#2563eb" },
+  { label: "Emerald", value: "#059669" },
+  { label: "Rose", value: "#e11d48" },
+  { label: "White", value: "#f8fafc" },
+];
+
+const highlightColors = [
+  { label: "Yellow", value: "#fef08a" },
+  { label: "Orange", value: "#fed7aa" },
+  { label: "Green", value: "#bbf7d0" },
+  { label: "Blue", value: "#bfdbfe" },
+  { label: "Rose", value: "#fecdd3" },
+  { label: "Clear", value: "transparent" },
+];
+
+const alignmentTools = [
+  { label: "Align left", command: "justifyLeft", icon: AlignLeft },
+  { label: "Align center", command: "justifyCenter", icon: AlignCenter },
+  { label: "Align right", command: "justifyRight", icon: AlignRight },
+  { label: "Justify", command: "justifyFull", icon: AlignJustify },
 ];
 
 export function RichEditor({ value, onChange, className }: RichEditorProps) {
@@ -128,6 +159,15 @@ export function RichEditor({ value, onChange, className }: RichEditorProps) {
     emitChange();
   }
 
+  function applyInlineStyle(command: string, value: string) {
+    editorRef.current?.focus();
+    restoreSelection();
+    document.execCommand("styleWithCSS", false, "true");
+    document.execCommand(command, false, value);
+    emitChange();
+    saveSelection();
+  }
+
   function insertImage(file: File | null) {
     if (!file || !file.type.startsWith("image/")) {
       return;
@@ -164,10 +204,11 @@ export function RichEditor({ value, onChange, className }: RichEditorProps) {
   }
 
   useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) {
+    const currentEditor = editorRef.current;
+    if (!currentEditor) {
       return;
     }
+    const editor = currentEditor;
 
     function stopResize() {
       const session = resizeSessionRef.current;
@@ -291,6 +332,37 @@ export function RichEditor({ value, onChange, className }: RichEditorProps) {
             </Button>
           );
         })}
+        <span className="mx-1 h-6 w-px bg-orange-200 dark:bg-white/10" />
+        {alignmentTools.map((tool) => {
+          const Icon = tool.icon;
+
+          return (
+            <Button
+              key={tool.label}
+              type="button"
+              variant="ghost"
+              size="icon"
+              title={tool.label}
+              aria-label={tool.label}
+              onClick={() => run(tool.command)}
+            >
+              <Icon className="h-4 w-4" />
+            </Button>
+          );
+        })}
+        <span className="mx-1 h-6 w-px bg-orange-200 dark:bg-white/10" />
+        <ColorMenu
+          label="Text color"
+          icon={Palette}
+          colors={textColors}
+          onSelect={(color) => applyInlineStyle("foreColor", color)}
+        />
+        <ColorMenu
+          label="Highlight color"
+          icon={Highlighter}
+          colors={highlightColors}
+          onSelect={(color) => applyInlineStyle("hiliteColor", color)}
+        />
         <input
           ref={fileInputRef}
           type="file"
@@ -318,6 +390,42 @@ export function RichEditor({ value, onChange, className }: RichEditorProps) {
           onKeyUp={saveSelection}
           onBlur={saveSelection}
         />
+      </div>
+    </div>
+  );
+}
+
+function ColorMenu({
+  label,
+  icon: Icon,
+  colors,
+  onSelect,
+}: {
+  label: string;
+  icon: React.ElementType;
+  colors: Array<{ label: string; value: string }>;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <div className="group relative">
+      <Button type="button" variant="ghost" size="icon" title={label} aria-label={label}>
+        <Icon className="h-4 w-4" />
+      </Button>
+      <div className="invisible absolute left-0 top-full z-20 mt-1 grid w-40 grid-cols-6 gap-1 rounded-lg border border-orange-100 bg-white p-2 opacity-0 shadow-xl transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100 dark:border-white/10 dark:bg-[#151515]">
+        {colors.map((color) => (
+          <button
+            key={`${label}-${color.label}`}
+            type="button"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              onSelect(color.value);
+            }}
+            className="h-5 w-5 rounded-full border border-slate-300 shadow-sm transition hover:scale-110 dark:border-white/20"
+            style={{ background: color.value === "transparent" ? "transparent" : color.value }}
+            title={color.label}
+            aria-label={`${label}: ${color.label}`}
+          />
+        ))}
       </div>
     </div>
   );

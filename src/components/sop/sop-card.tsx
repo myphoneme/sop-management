@@ -1,5 +1,4 @@
-import Link from "next/link";
-/* eslint-disable @next/next/no-img-element */
+import { Link } from "react-router-dom";
 import { ArrowUpRight, UserRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +12,7 @@ export function SopCard({ sop, priority = false }: { sop: SopPost; priority?: bo
 
   return (
     <Link
-      href={`/sops/${sop.id}`}
+      to={`/sops/${sop.id}`}
       className="page-card group relative grid overflow-hidden rounded-lg border border-orange-100 bg-white shadow-sm transition duration-300 hover:border-orange-200 hover:shadow-lg dark:border-[#242424] dark:bg-[#101010] dark:hover:border-[#f47920]/45"
     >
       <div className="relative aspect-[16/9] overflow-hidden bg-orange-100 dark:bg-black">

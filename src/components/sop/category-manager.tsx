@@ -1,8 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   FolderKanban,
@@ -18,6 +17,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import {
   createCategory,
   deleteCategory,
@@ -30,8 +30,9 @@ import type { Category, SopPost } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
 export function CategoryManager() {
-  const pathname = usePathname();
-  const router = useRouter();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [posts, setPosts] = useState<SopPost[]>([]);
   const [name, setName] = useState("");
@@ -50,7 +51,7 @@ export function CategoryManager() {
       const storedSession = getStoredSession();
 
       if (!storedSession) {
-        router.replace(loginPath(pathname || "/dashboard/categories"));
+        navigate(loginPath(pathname || "/dashboard/categories"), { replace: true });
         return;
       }
 
@@ -58,7 +59,7 @@ export function CategoryManager() {
     }, 0);
 
     return () => window.clearTimeout(timeout);
-  }, [pathname, router]);
+  }, [navigate, pathname]);
 
   useEffect(() => {
     if (!sessionChecked) {
@@ -169,13 +170,23 @@ export function CategoryManager() {
           item.id === category.id ? category : item,
         );
       });
+      showToast({
+        tone: "success",
+        title: editingCategory ? "Category updated" : "Category created",
+        description: `${category.category_name} is now available in the category list.`,
+      });
       closeModal();
     } catch (submitError) {
-      setModalError(
+      const message =
         submitError instanceof Error
           ? submitError.message
-          : "Unable to save category.",
-      );
+          : "Unable to save category.";
+      setModalError(message);
+      showToast({
+        tone: "error",
+        title: "Category was not saved",
+        description: message,
+      });
     } finally {
       setSaving(false);
     }
@@ -201,12 +212,22 @@ export function CategoryManager() {
       setCategories((current) =>
         current.filter((item) => item.id !== category.id),
       );
+      showToast({
+        tone: "success",
+        title: "Category deleted",
+        description: `${category.category_name} was removed from the category list.`,
+      });
     } catch (deleteError) {
-      setError(
+      const message =
         deleteError instanceof Error
           ? deleteError.message
-          : "Unable to delete category.",
-      );
+          : "Unable to delete category.";
+      setError(message);
+      showToast({
+        tone: "error",
+        title: "Category was not deleted",
+        description: message,
+      });
     } finally {
       setDeletingId(null);
     }
@@ -223,7 +244,7 @@ export function CategoryManager() {
           <>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Button asChild variant="ghost">
-                <Link href="/dashboard">
+                <Link to="/dashboard">
                   <ArrowLeft className="h-4 w-4" />
                   Dashboard
                 </Link>

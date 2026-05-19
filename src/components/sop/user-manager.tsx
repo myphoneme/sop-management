@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Loader2,
@@ -14,14 +13,16 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import { getUsers } from "@/lib/api";
 import { getStoredSession, loginPath } from "@/lib/auth";
 import type { ApiUser } from "@/lib/types";
 import { initials } from "@/lib/utils";
 
 export function UserManager() {
-  const pathname = usePathname();
-  const router = useRouter();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
   const [users, setUsers] = useState<ApiUser[]>([]);
   const [query, setQuery] = useState("");
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -33,7 +34,7 @@ export function UserManager() {
       const storedSession = getStoredSession();
 
       if (!storedSession) {
-        router.replace(loginPath(pathname || "/dashboard/users"));
+        navigate(loginPath(pathname || "/dashboard/users"), { replace: true });
         return;
       }
 
@@ -41,7 +42,7 @@ export function UserManager() {
     }, 0);
 
     return () => window.clearTimeout(timeout);
-  }, [pathname, router]);
+  }, [navigate, pathname]);
 
   useEffect(() => {
     if (!sessionChecked) {
@@ -61,11 +62,16 @@ export function UserManager() {
         }
       } catch (loadError) {
         if (active) {
-          setError(
+          const message =
             loadError instanceof Error
               ? loadError.message
-              : "Unable to load users.",
-          );
+              : "Unable to load users.";
+          setError(message);
+          showToast({
+            tone: "error",
+            title: "Users could not be loaded",
+            description: message,
+          });
         }
       } finally {
         if (active) {
@@ -79,7 +85,7 @@ export function UserManager() {
     return () => {
       active = false;
     };
-  }, [sessionChecked]);
+  }, [sessionChecked, showToast]);
 
   const visibleUsers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -103,7 +109,7 @@ export function UserManager() {
           <>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Button asChild variant="ghost">
-                <Link href="/dashboard">
+                <Link to="/dashboard">
                   <ArrowLeft className="h-4 w-4" />
                   Dashboard
                 </Link>
