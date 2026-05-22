@@ -42,10 +42,11 @@ export function getStoredSession() {
 
 export async function getCurrentSession() {
   try {
+    const existingSession = getStoredSession();
     const user = await getCurrentUser();
     const session: StoredSession = {
-      token: "",
-      tokenType: "cookie",
+      token: existingSession?.token || "",
+      tokenType: existingSession?.tokenType || "cookie",
       user,
     };
 

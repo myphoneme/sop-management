@@ -1,45 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
   BarChart3,
   BookOpenCheck,
   CalendarDays,
-  Clock3,
-  FilePlus2,
   FolderKanban,
   Loader2,
   PieChart,
-  PenLine,
-  Search,
-  SlidersHorizontal,
   Sparkles,
-  Trash2,
   UsersRound,
 } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/toast";
-import { deleteSop, getCategories, getPosts, resolveAssetUrl } from "@/lib/api";
+import { getCategories, getPosts } from "@/lib/api";
 import { getCurrentSession, loginPath } from "@/lib/auth";
 import type { Category, SopPost } from "@/lib/types";
-import { cn, formatDate, initials, readingMinutes, stripHtml } from "@/lib/utils";
+import { cn, formatDate, readingMinutes } from "@/lib/utils";
 
 type Tone = "orange" | "violet" | "blue" | "emerald" | "amber" | "slate";
-
-const chipStyles: Record<Tone, string> = {
-  orange: "border-orange-200 bg-orange-50 text-[#c75b0f] dark:border-orange-400/20 dark:bg-orange-400/10 dark:text-orange-200",
-  violet: "border-slate-200 bg-slate-50 text-slate-700 dark:border-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-200",
-  blue: "border-slate-200 bg-slate-50 text-slate-700 dark:border-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-200",
-  emerald: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200",
-  amber: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200",
-  slate: "border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200",
-};
 
 const metricAccentStyles: Record<
   Tone,
@@ -89,14 +70,11 @@ const categoryPalette = [
 export function DashboardHome() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { showToast } = useToast();
   const [posts, setPosts] = useState<SopPost[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [referenceTime, setReferenceTime] = useState<number | null>(null);
 
   useEffect(() => {
@@ -159,22 +137,11 @@ export function DashboardHome() {
     };
   }, [sessionChecked]);
 
-  const filteredPosts = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    const visiblePosts = normalized
-      ? posts.filter((post) =>
-          `${post.title} ${post.category?.category_name || ""} ${stripHtml(post.post)} ${post.created_user?.name || ""}`
-            .toLowerCase()
-            .includes(normalized),
-        )
-      : posts;
-
-    return visiblePosts.toSorted(
-      (a, b) => getPostTime(b) - getPostTime(a) || b.id - a.id,
-    );
-  }, [posts, query]);
-
-  const latestPost = filteredPosts[0] || null;
+  const sortedPosts = useMemo(
+    () => posts.toSorted((a, b) => getPostTime(b) - getPostTime(a) || b.id - a.id),
+    [posts],
+  );
+  const latestPost = sortedPosts[0] || null;
 
   const recentPosts = useMemo(() => {
     if (!referenceTime) {
@@ -209,45 +176,14 @@ export function DashboardHome() {
     [posts, referenceTime],
   );
   const categoryBreakdown = useMemo(
-    () => buildCategoryBreakdown(filteredPosts.length > 0 ? filteredPosts : posts, categories),
-    [filteredPosts, posts, categories],
+    () => buildCategoryBreakdown(posts, categories),
+    [posts, categories],
   );
   const topCategory = categoryBreakdown[0] || null;
 
-  async function onDelete(id: number) {
-    const post = posts.find((item) => item.id === id);
-    const confirmed = window.confirm("Delete this SOP?");
-    if (!confirmed) {
-      return;
-    }
-
-    setDeletingId(id);
-    setError("");
-
-    try {
-      await deleteSop(id);
-      setPosts((current) => current.filter((post) => post.id !== id));
-      showToast({
-        tone: "success",
-        title: "SOP deleted",
-        description: `${post?.title || "The SOP"} was removed from inventory.`,
-      });
-    } catch (deleteError) {
-      const message = deleteError instanceof Error ? deleteError.message : "Unable to delete SOP.";
-      setError(message);
-      showToast({
-        tone: "error",
-        title: "SOP was not deleted",
-        description: message,
-      });
-    } finally {
-      setDeletingId(null);
-    }
-  }
-
   return (
     <AppShell variant="dashboard">
-      <div className="grid gap-3 pb-3">
+      <div className="grid min-h-[calc(100vh-7rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 pb-3">
         {!sessionChecked ? (
           <div className="grid min-h-[24rem] place-items-center rounded-2xl border border-slate-200 bg-white/90 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#050505]/90 dark:shadow-black/30">
             <Loader2 className="h-6 w-6 animate-spin text-orange-300" />
@@ -289,7 +225,7 @@ export function DashboardHome() {
               />
             </section>
 
-            <section className="grid items-start gap-2 2xl:grid-cols-[minmax(0,1.44fr)_minmax(220px,0.54fr)_minmax(220px,0.48fr)]">
+            <section className="grid min-h-[28rem] items-stretch gap-2 2xl:grid-cols-[minmax(0,1.44fr)_minmax(220px,0.54fr)_minmax(220px,0.48fr)]">
               <div className="min-w-0">
                 <LineChartPanel
                   values={monthlySeries}
@@ -310,177 +246,15 @@ export function DashboardHome() {
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#050505]/95 dark:shadow-black/30">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 sm:px-5 dark:border-white/10">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Clock3 className="h-3.5 w-3.5 text-orange-300" />
-                    <h2 className="text-sm font-black tracking-normal text-slate-950 dark:text-white">
-                      SOP inventory
-                    </h2>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-                      {posts.length} SOPs
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[11px] font-semibold text-slate-400">
-                    {filteredPosts.length} visible - newest first
-                  </p>
-                </div>
-                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                  <label className="relative w-full sm:w-80">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      className="h-10 border-slate-200 bg-white pl-9 text-slate-950 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
-                      placeholder="Search SOPs, categories, or owners..."
-                    />
-                  </label>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-10 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    Filter
-                  </Button>
-                </div>
+            {loading ? (
+              <div className="grid min-h-20 place-items-center rounded-2xl border border-slate-200 bg-white/95 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#050505]/95 dark:shadow-black/30">
+                <Loader2 className="h-6 w-6 animate-spin text-orange-300" />
               </div>
-
-              {loading ? (
-                <div className="grid min-h-36 place-items-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-orange-300" />
-                </div>
-              ) : error ? (
-                <div className="m-4 rounded-md border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-100">
-                  {error}
-                </div>
-              ) : filteredPosts.length === 0 ? (
-                <div className="grid min-h-36 place-items-center p-4 text-center">
-                  <div className="grid gap-3">
-                    <h3 className="text-lg font-black tracking-normal text-slate-950 dark:text-white">
-                      No SOPs in inventory
-                    </h3>
-                    <Button
-                      asChild
-                      className="mx-auto border border-orange-300/20 bg-[#f47920] hover:bg-[#cf5f0d]"
-                    >
-                      <Link to="/dashboard/sops/new">
-                        <FilePlus2 className="h-4 w-4" />
-                        New SOP
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="max-h-[16rem] overflow-y-auto overflow-x-auto">
-                  <table className="w-full min-w-[900px] text-left text-sm">
-                    <thead className="sticky top-0 bg-white text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:bg-[#050505] dark:text-slate-400">
-                      <tr>
-                        <th className="px-4 py-2.5">Cover</th>
-                        <th className="px-4 py-2.5">Title</th>
-                        <th className="px-4 py-2.5">Category</th>
-                        <th className="px-4 py-2.5">Owner</th>
-                        <th className="px-4 py-2.5">Created</th>
-                        <th className="px-4 py-2.5">Status</th>
-                        <th className="px-4 py-2.5 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/8">
-                      {filteredPosts.map((post) => {
-                        const imageUrl = resolveAssetUrl(post.image);
-                        const isFresh = isRecentPost(post, 30);
-
-                        return (
-                          <tr
-                            key={post.id}
-                            className="align-middle transition hover:bg-white/[0.03]"
-                          >
-                            <td className="px-4 py-2.5">
-                              <div className="relative h-12 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-[#121a2a]">
-                                {imageUrl ? (
-                                  <img
-                                    src={imageUrl}
-                                    alt={post.title}
-                                    className="h-full w-full object-cover"
-                                    loading="lazy"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#131d31,#0b1220_55%,#1d2b49)] text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-                                    SOP
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                            <td className="max-w-sm px-4 py-2.5">
-                              <Link
-                                to={`/sops/${post.id}`}
-                                className="line-clamp-1 font-black text-slate-950 hover:text-orange-300 dark:text-white"
-                              >
-                                {post.title}
-                              </Link>
-                              <p className="mt-0.5 line-clamp-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                {stripHtml(post.post) || "No content"}
-                              </p>
-                            </td>
-                            <td className="px-4 py-2.5">
-                              <CategoryChip label={post.category?.category_name || "None"} />
-                            </td>
-                            <td className="px-4 py-2.5">
-                              <div className="flex items-center gap-2">
-                                <span className="grid h-7 w-7 place-items-center rounded-lg bg-slate-100 text-[10px] font-black text-slate-700 ring-1 ring-slate-200 dark:bg-zinc-500/10 dark:text-zinc-200 dark:ring-zinc-400/20">
-                                  {initials(post.created_user?.name)}
-                                </span>
-                                <span className="truncate font-semibold text-slate-700 dark:text-slate-200">
-                                  {post.created_user?.name || "Owner"}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300">
-                              {formatDate(post.created_at)}
-                            </td>
-                            <td className="px-4 py-2.5">
-                              <StatusChip tone={isFresh ? "emerald" : "slate"}>
-                                {isFresh ? "Fresh" : "Live"}
-                              </StatusChip>
-                            </td>
-                            <td className="px-4 py-2.5">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  asChild
-                                  variant="secondary"
-                                  size="sm"
-                                className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
-                                >
-                                  <Link to={`/dashboard/sops/${post.id}/edit`}>
-                                    <PenLine className="h-4 w-4" />
-                                    Edit
-                                  </Link>
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="danger"
-                                  size="sm"
-                                  onClick={() => onDelete(post.id)}
-                                  disabled={deletingId === post.id}
-                                >
-                                  {deletingId === post.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="h-4 w-4" />
-                                  )}
-                                  Delete
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
+            ) : error ? (
+              <div className="rounded-md border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-600 dark:text-rose-100">
+                {error}
+              </div>
+            ) : null}
           </>
         )}
       </div>
@@ -492,15 +266,6 @@ function getPostTime(post: SopPost) {
   const time = post.created_at ? new Date(post.created_at).getTime() : 0;
 
   return Number.isNaN(time) ? 0 : time;
-}
-
-function isRecentPost(post: SopPost, days: number) {
-  const time = getPostTime(post);
-  if (!time) {
-    return false;
-  }
-
-  return Date.now() - time <= days * 24 * 60 * 60 * 1000;
 }
 
 function buildMonthlySeries(posts: SopPost[], anchorTime: number) {
@@ -677,7 +442,7 @@ function LineChartPanel({
   const maxValue = Math.max(1, ...values.map((item) => item.value));
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-2.5 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#050505]/95 dark:shadow-black/30 2xl:col-span-1">
+    <div className="flex h-full min-h-[28rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-2.5 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#050505]/95 dark:shadow-black/30 2xl:col-span-1">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -695,8 +460,8 @@ function LineChartPanel({
         </span>
       </div>
 
-      <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-[#101010]">
-        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-28 w-full">
+      <div className="mt-2 flex min-h-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-[#101010]">
+        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-full min-h-[14rem] w-full">
           {Array.from({ length: 5 }, (_, index) => {
             const y = padding + ((chartHeight - padding * 2) / 4) * index;
             return (
@@ -786,7 +551,7 @@ function DonutPanel({
     .join(", ");
 
   return (
-    <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-2.5 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#050505]/95 dark:shadow-black/30">
+    <div className="flex h-full min-h-[28rem] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-2.5 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#050505]/95 dark:shadow-black/30">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -801,15 +566,15 @@ function DonutPanel({
         </div>
       </div>
 
-      <div className="mt-2 grid gap-1.5">
-        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-[#101010]">
+      <div className="mt-2 grid min-h-0 flex-1 content-center gap-2">
+        <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-[#101010] 2xl:h-36 2xl:w-36">
           <div
             className="grid h-full w-full place-items-center rounded-full"
             style={{
               background: `conic-gradient(${gradient})`,
             }}
           >
-            <div className="grid h-14 w-14 place-items-center rounded-full border border-slate-200 bg-white text-center dark:border-white/10 dark:bg-[#050505]">
+            <div className="grid h-16 w-16 place-items-center rounded-full border border-slate-200 bg-white text-center dark:border-white/10 dark:bg-[#050505]">
               <div>
                 <div className="text-lg font-black text-slate-950 dark:text-white">{total}</div>
                 <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
@@ -867,13 +632,13 @@ function InsightPanel({
   activeAuthors: number;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white/95 p-2.5 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#050505]/95 dark:shadow-black/30">
+    <div className="flex h-full min-h-[28rem] flex-col rounded-2xl border border-slate-200 bg-white/95 p-2.5 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#050505]/95 dark:shadow-black/30">
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-slate-300" />
         <h2 className="text-sm font-black tracking-normal text-slate-950 dark:text-white">Quick insights</h2>
       </div>
 
-      <div className="mt-2 grid gap-1.5">
+      <div className="mt-2 grid flex-1 content-center gap-2">
         <InsightRow
           icon={FolderKanban}
           label="Top category"
@@ -935,40 +700,6 @@ function InsightRow({
         <p className="truncate text-[10px] font-medium text-slate-500 dark:text-slate-400">{detail}</p>
       </div>
     </div>
-  );
-}
-
-function CategoryChip({ label }: { label: string }) {
-  const tones: Array<"blue" | "emerald" | "amber" | "violet" | "slate"> = [
-    "blue",
-    "emerald",
-    "amber",
-    "violet",
-    "slate",
-  ];
-  const index =
-    label.split("").reduce((total, char) => total + char.charCodeAt(0), 0) %
-    tones.length;
-  const tone = tones[index];
-
-  return (
-    <Badge tone={tone} className={chipStyles[tone]}>
-      {label}
-    </Badge>
-  );
-}
-
-function StatusChip({
-  tone,
-  children,
-}: {
-  tone: "emerald" | "slate";
-  children: React.ReactNode;
-}) {
-  return (
-    <Badge tone={tone === "emerald" ? "emerald" : "slate"} className={chipStyles[tone]}>
-      {children}
-    </Badge>
   );
 }
 

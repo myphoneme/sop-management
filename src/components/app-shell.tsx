@@ -29,6 +29,7 @@ type AppShellProps = {
 
 const dashboardLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/sops", label: "SOPs", icon: BookOpenCheck },
   { href: "/dashboard/sops/new", label: "Create SOP", icon: FilePlus2 },
   { href: "/dashboard/categories", label: "Categories", icon: FolderKanban },
   { href: "/dashboard/users", label: "Users", icon: UsersRound },
@@ -286,6 +287,12 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
                 const active =
                   item.href === "/dashboard"
                     ? pathname === item.href
+                    : item.href === "/dashboard/sops"
+                      ? pathname === item.href ||
+                        (pathname.startsWith("/dashboard/sops/") &&
+                          pathname !== "/dashboard/sops/new")
+                      : item.href === "/dashboard/sops/new"
+                        ? pathname === item.href
                     : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
                 return (
@@ -309,7 +316,7 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
 
             </div>
           </aside>
-          <main className="min-w-0">{children}</main>
+          <main className="min-w-0 lg:min-h-[calc(100vh-7rem)]">{children}</main>
         </div>
       ) : (
         <main className="min-w-0">{children}</main>

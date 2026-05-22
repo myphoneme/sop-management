@@ -7,6 +7,7 @@ import { LoginForm } from "@/components/sop/login-form";
 import { PublicLibrary } from "@/components/sop/public-library";
 import { SopDetail } from "@/components/sop/sop-detail";
 import { SopForm } from "@/components/sop/sop-form";
+import { SopManager } from "@/components/sop/sop-manager";
 import { UserManager } from "@/components/sop/user-manager";
 
 export function App() {
@@ -17,6 +18,7 @@ export function App() {
       <Route path="/sops/all" element={<InventoryLibrary />} />
       <Route path="/sops/:id" element={<SopDetailRoute />} />
       <Route path="/dashboard" element={<DashboardHome />} />
+      <Route path="/dashboard/sops" element={<SopManager />} />
       <Route path="/dashboard/categories" element={<CategoryManager />} />
       <Route path="/dashboard/users" element={<UserManager />} />
       <Route path="/dashboard/sops/new" element={<SopForm mode="create" />} />

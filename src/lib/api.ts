@@ -31,6 +31,7 @@ export const API_BASE_URL = (
 ).replace(/\/$/, "");
 
 let activeApiBaseUrl = API_BASE_URL;
+const SESSION_KEY = "sop_studio_session";
 
 export class ApiError extends Error {
   status: number;
@@ -61,13 +62,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let response: Response;
 
     try {
+      const authHeader = getAuthHeader();
+      const headers = new Headers(init?.headers);
+      headers.set("Accept", "application/json");
+      if (authHeader.Authorization && !headers.has("Authorization")) {
+        headers.set("Authorization", authHeader.Authorization);
+      }
+
       response = await fetch(`${baseUrl}${path}`, {
         ...init,
         credentials: init?.credentials || "include",
-        headers: {
-          Accept: "application/json",
-          ...init?.headers,
-        },
+        headers,
       });
     } catch (error) {
       lastNetworkError = error;
@@ -93,6 +98,29 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   throw lastNetworkError instanceof Error
     ? lastNetworkError
     : new Error("Unable to reach API.");
+}
+
+function getAuthHeader() {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  const raw = window.localStorage.getItem(SESSION_KEY);
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    const session = JSON.parse(raw) as { token?: string; tokenType?: string };
+    if (!session.token) {
+      return {};
+    }
+
+    const tokenType = session.tokenType || "bearer";
+    return { Authorization: `${tokenType} ${session.token}` };
+  } catch {
+    return {};
+  }
 }
 
 function safeJson(text: string) {
