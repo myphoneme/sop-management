@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { clearSession, getCurrentSession, loginPath, type StoredSession } from "@/lib/auth";
+import { clearSession, getCurrentSession, isAdminSession, loginPath, type StoredSession } from "@/lib/auth";
 import { resolveAssetUrl } from "@/lib/api";
 import { cn, initials } from "@/lib/utils";
 
@@ -29,10 +29,11 @@ type AppShellProps = {
 
 const dashboardLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/sops", label: "SOPs", icon: BookOpenCheck },
+  { href: "/dashboard/sops/mine", label: "Your SOPs", icon: BookOpenCheck },
+  { href: "/dashboard/sops", label: "All SOPs", icon: BookOpenCheck, adminOnly: true },
   { href: "/dashboard/sops/new", label: "Create SOP", icon: FilePlus2 },
   { href: "/dashboard/categories", label: "Categories", icon: FolderKanban },
-  { href: "/dashboard/users", label: "Users", icon: UsersRound },
+  { href: "/dashboard/users", label: "Users", icon: UsersRound, adminOnly: true },
 ];
 
 export function AppShell({ children, variant = "public" }: AppShellProps) {
@@ -90,6 +91,7 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
   }, []);
 
   const dashboardHref = session ? "/dashboard" : loginPath("/dashboard");
+  const isAdmin = isAdminSession(session);
   const createHref = session
     ? "/dashboard/sops/new"
     : loginPath("/dashboard/sops/new");
@@ -282,7 +284,9 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
                   : "border border-slate-200 bg-white shadow-slate-950/10 dark:border-white/10 dark:bg-[#050505]/90 dark:shadow-black/30",
               )}
             >
-              {dashboardLinks.map((item) => {
+              {dashboardLinks
+                .filter((item) => !item.adminOnly || isAdmin)
+                .map((item) => {
                 const Icon = item.icon;
                 const active =
                   item.href === "/dashboard"
@@ -290,7 +294,10 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
                     : item.href === "/dashboard/sops"
                       ? pathname === item.href ||
                         (pathname.startsWith("/dashboard/sops/") &&
-                          pathname !== "/dashboard/sops/new")
+                          pathname !== "/dashboard/sops/new" &&
+                          pathname !== "/dashboard/sops/mine")
+                      : item.href === "/dashboard/sops/mine"
+                        ? pathname === item.href
                       : item.href === "/dashboard/sops/new"
                         ? pathname === item.href
                     : pathname === item.href || pathname.startsWith(`${item.href}/`);

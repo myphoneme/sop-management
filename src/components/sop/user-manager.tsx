@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { getUsers } from "@/lib/api";
-import { getCurrentSession, loginPath } from "@/lib/auth";
+import { getCurrentSession, isAdminSession, loginPath } from "@/lib/auth";
 import type { ApiUser } from "@/lib/types";
 import { initials } from "@/lib/utils";
 
@@ -37,6 +37,11 @@ export function UserManager() {
 
         if (!storedSession) {
           navigate(loginPath(pathname || "/dashboard/users"), { replace: true });
+          return;
+        }
+
+        if (!isAdminSession(storedSession)) {
+          navigate("/dashboard/sops/mine", { replace: true });
           return;
         }
 
@@ -100,7 +105,7 @@ export function UserManager() {
     }
 
     return users.filter((user) =>
-      `${user.name} ${user.email}`.toLowerCase().includes(normalized),
+      `${user.name} ${user.email} ${user.role || "user"}`.toLowerCase().includes(normalized),
     );
   }, [query, users]);
 
@@ -174,6 +179,7 @@ export function UserManager() {
                       <tr>
                         <th className="px-4 py-3">User</th>
                         <th className="px-4 py-3">Email</th>
+                        <th className="px-4 py-3">Role</th>
                         <th className="px-4 py-3">ID</th>
                       </tr>
                     </thead>
@@ -199,6 +205,9 @@ export function UserManager() {
                               <Mail className="h-4 w-4" />
                               {user.email}
                             </span>
+                          </td>
+                          <td className="px-4 py-4 font-semibold capitalize text-slate-600 dark:text-slate-300">
+                            {user.role || "user"}
                           </td>
                           <td className="px-4 py-4 font-semibold text-slate-500">
                             #{user.id}

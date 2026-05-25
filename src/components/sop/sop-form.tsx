@@ -21,6 +21,8 @@ type SopFormProps = {
   sopId?: number;
 };
 
+const MAX_COVER_IMAGE_BYTES = 1024 * 1024;
+
 export function SopForm({ mode, sopId }: SopFormProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -154,6 +156,29 @@ export function SopForm({ mode, sopId }: SopFormProps) {
     }
   }
 
+  function onImageChange(file: File | null) {
+    if (!file) {
+      setImage(null);
+      return;
+    }
+
+    if (file.size > MAX_COVER_IMAGE_BYTES) {
+      const message =
+        "Cover image must be 1 MB or smaller. The deployed server currently rejects larger uploads.";
+      setImage(null);
+      setError(message);
+      showToast({
+        tone: "error",
+        title: "Image is too large",
+        description: message,
+      });
+      return;
+    }
+
+    setError("");
+    setImage(file);
+  }
+
   return (
     <AppShell variant="dashboard">
       <div className="mx-auto grid w-full max-w-[1440px] gap-4 px-4 pb-4 lg:px-6">
@@ -267,14 +292,14 @@ export function SopForm({ mode, sopId }: SopFormProps) {
                       </div>
                       <p>Drag and drop an image here</p>
                       <p className="text-[#f47920]">or click to browse</p>
-                      <p className="text-xs">JPG, PNG up to 5MB</p>
+                      <p className="text-xs">JPG, PNG up to 1MB</p>
                     </div>
                   )}
                   <Input
                     type="file"
                     accept="image/*"
                     className="sr-only"
-                    onChange={(event) => setImage(event.target.files?.[0] || null)}
+                    onChange={(event) => onImageChange(event.target.files?.[0] || null)}
                   />
                 </label>
               </section>

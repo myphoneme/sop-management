@@ -2,6 +2,7 @@ export type ApiUser = {
   id: number;
   name: string;
   email: string;
+  role?: "admin" | "user" | string;
   profile_picture?: string | null;
 };
 
@@ -37,6 +38,7 @@ export type UserPayload = {
   name: string;
   email: string;
   password: string;
+  role?: "admin" | "user";
 };
 
 export type SopPayload = {

@@ -20,18 +20,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { deleteSop, getCategories, getPosts, resolveAssetUrl } from "@/lib/api";
-import { getCurrentSession, loginPath } from "@/lib/auth";
+import { getCurrentSession, isAdminSession, loginPath, type StoredSession } from "@/lib/auth";
 import type { Category, SopPost } from "@/lib/types";
 import { cn, formatDate, initials, readingMinutes, stripHtml } from "@/lib/utils";
 
 const POSTS_PER_PAGE = 10;
 
-export function SopManager() {
+type SopManagerProps = {
+  scope?: "all" | "mine";
+};
+
+export function SopManager({ scope = "all" }: SopManagerProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [posts, setPosts] = useState<SopPost[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [session, setSession] = useState<StoredSession | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
@@ -51,6 +56,12 @@ export function SopManager() {
           return;
         }
 
+        if (scope === "all" && !isAdminSession(storedSession)) {
+          navigate("/dashboard/sops/mine", { replace: true });
+          return;
+        }
+
+        setSession(storedSession);
         setSessionChecked(true);
       });
     }, 0);
@@ -59,7 +70,7 @@ export function SopManager() {
       active = false;
       window.clearTimeout(timeout);
     };
-  }, [navigate, pathname]);
+  }, [navigate, pathname, scope]);
 
   useEffect(() => {
     if (!sessionChecked) {
@@ -103,6 +114,16 @@ export function SopManager() {
     const normalized = query.trim().toLowerCase();
 
     return posts
+      .filter((post) => {
+        if (scope !== "mine" || !session) {
+          return true;
+        }
+
+        return (
+          post.created_by === session.user.id ||
+          post.created_user?.email === session.user.email
+        );
+      })
       .filter((post) => categoryId === "all" || String(post.category_id) === categoryId)
       .filter((post) => {
         if (!normalized) {
@@ -114,7 +135,15 @@ export function SopManager() {
           .includes(normalized);
       })
       .toSorted((a, b) => getPostTime(b) - getPostTime(a) || b.id - a.id);
-  }, [categoryId, posts, query]);
+  }, [categoryId, posts, query, scope, session]);
+
+  const isAdmin = isAdminSession(session);
+  const canManagePost = (post: SopPost) =>
+    isAdmin ||
+    (session
+      ? post.created_by === session.user.id ||
+        post.created_user?.email === session.user.email
+      : false);
 
   const totalPages = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
   const paginatedPosts = useMemo(
@@ -183,12 +212,14 @@ export function SopManager() {
               <div className="flex items-center gap-2">
                 <BookOpenCheck className="h-4 w-4 text-orange-400" />
                 <h1 className="text-base font-black tracking-normal text-slate-950 dark:text-white">
-                  SOPs
+                  {scope === "mine" ? "Your SOPs" : "All SOPs"}
                 </h1>
                 <Badge tone="slate">{filteredPosts.length} visible</Badge>
               </div>
               <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Manage the full SOP inventory from one dashboard tab.
+                {scope === "mine"
+                  ? "Review SOPs created under your account."
+                  : "Manage the full SOP inventory from one dashboard tab."}
               </p>
             </div>
             <Button asChild className="border border-orange-300/20 bg-[#f47920] hover:bg-[#cf5f0d]">
@@ -323,24 +354,28 @@ export function SopManager() {
                             <IconButton to={`/sops/${post.id}`} title="View SOP">
                               <Eye className="h-4 w-4" />
                             </IconButton>
-                            <IconButton to={`/dashboard/sops/${post.id}/edit`} title="Edit SOP">
-                              <PenLine className="h-4 w-4" />
-                            </IconButton>
-                            <Button
-                              type="button"
-                              variant="danger"
-                              size="icon"
-                              title="Delete SOP"
-                              onClick={() => onDelete(post.id)}
-                              disabled={deletingId === post.id}
-                              className="h-9 w-9"
-                            >
-                              {deletingId === post.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
+                            {canManagePost(post) ? (
+                              <>
+                                <IconButton to={`/dashboard/sops/${post.id}/edit`} title="Edit SOP">
+                                  <PenLine className="h-4 w-4" />
+                                </IconButton>
+                                <Button
+                                  type="button"
+                                  variant="danger"
+                                  size="icon"
+                                  title="Delete SOP"
+                                  onClick={() => onDelete(post.id)}
+                                  disabled={deletingId === post.id}
+                                  className="h-9 w-9"
+                                >
+                                  {deletingId === post.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </>
+                            ) : null}
                           </div>
                         </td>
                       </tr>

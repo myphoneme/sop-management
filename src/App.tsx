@@ -19,6 +19,7 @@ export function App() {
       <Route path="/sops/:id" element={<SopDetailRoute />} />
       <Route path="/dashboard" element={<DashboardHome />} />
       <Route path="/dashboard/sops" element={<SopManager />} />
+      <Route path="/dashboard/sops/mine" element={<SopManager scope="mine" />} />
       <Route path="/dashboard/categories" element={<CategoryManager />} />
       <Route path="/dashboard/users" element={<UserManager />} />
       <Route path="/dashboard/sops/new" element={<SopForm mode="create" />} />

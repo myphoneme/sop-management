@@ -15,7 +15,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getPost, resolveAssetUrl } from "@/lib/api";
-import { getCurrentSession, loginPath, type StoredSession } from "@/lib/auth";
+import { getCurrentSession, isAdminSession, type StoredSession } from "@/lib/auth";
 import type { SopPost } from "@/lib/types";
 import { formatDate, readingMinutes } from "@/lib/utils";
 
@@ -24,6 +24,11 @@ export function SopDetail({ id }: { id: number }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [session, setSession] = useState<StoredSession | null>(null);
+  const canEdit = sop
+    ? isAdminSession(session) ||
+      sop.created_by === session?.user.id ||
+      sop.created_user?.email === session?.user.email
+    : false;
 
   useEffect(() => {
     let active = true;
@@ -80,15 +85,9 @@ export function SopDetail({ id }: { id: number }) {
               Library
             </Link>
           </Button>
-          {sop ? (
+          {canEdit && sop ? (
             <Button asChild variant="secondary">
-              <Link
-                to={
-                  session
-                    ? `/dashboard/sops/${sop.id}/edit`
-                    : loginPath(`/dashboard/sops/${sop.id}/edit`)
-                }
-              >
+              <Link to={`/dashboard/sops/${sop.id}/edit`}>
                 <Edit3 className="h-4 w-4" />
                 Edit
               </Link>

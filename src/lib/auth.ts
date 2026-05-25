@@ -65,3 +65,7 @@ export function clearSession() {
 export function loginPath(redirectTo = "/dashboard") {
   return `/login?redirect=${encodeURIComponent(redirectTo)}`;
 }
+
+export function isAdminSession(session: StoredSession | null | undefined) {
+  return session?.user.role === "admin";
+}

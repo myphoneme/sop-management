@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { uploadContentImage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type RichEditorProps = {
@@ -66,6 +67,14 @@ const alignmentTools = [
   { label: "Align right", command: "justifyRight", icon: AlignRight },
   { label: "Justify", command: "justifyFull", icon: AlignJustify },
 ];
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
 
 export function RichEditor({ value, onChange, className }: RichEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -168,17 +177,14 @@ export function RichEditor({ value, onChange, className }: RichEditorProps) {
     saveSelection();
   }
 
-  function insertImage(file: File | null) {
+  async function insertImage(file: File | null) {
     if (!file || !file.type.startsWith("image/")) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const src = String(reader.result || "");
-      if (!src) {
-        return;
-      }
+    try {
+      const { url } = await uploadContentImage(file);
+      if (!url) return;
 
       editorRef.current?.focus();
       restoreSelection();
@@ -186,7 +192,7 @@ export function RichEditor({ value, onChange, className }: RichEditorProps) {
         "insertHTML",
         false,
         `<figure contenteditable="false" class="editor-image-block is-selected" data-image-block data-size="320 x 240" style="width:320px;height:240px;">
-          <img src="${src}" alt="${file.name}" class="editor-image" style="width:100%;height:100%;object-fit:contain;" />
+          <img src="${escapeHtml(url)}" alt="${escapeHtml(file.name)}" class="editor-image" style="width:100%;height:100%;object-fit:contain;" />
           <span class="editor-image-handle editor-image-handle-nw" data-resize-handle="nw" aria-hidden="true"></span>
           <span class="editor-image-handle editor-image-handle-n" data-resize-handle="n" aria-hidden="true"></span>
           <span class="editor-image-handle editor-image-handle-ne" data-resize-handle="ne" aria-hidden="true"></span>
@@ -199,8 +205,9 @@ export function RichEditor({ value, onChange, className }: RichEditorProps) {
       );
       emitChange();
       savedRangeRef.current = null;
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      window.alert("Unable to upload image. Please try a smaller image or check your connection.");
+    }
   }
 
   useEffect(() => {

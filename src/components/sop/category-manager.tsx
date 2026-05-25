@@ -25,7 +25,7 @@ import {
   getPosts,
   updateCategory,
 } from "@/lib/api";
-import { getCurrentSession, loginPath } from "@/lib/auth";
+import { getCurrentSession, isAdminSession, loginPath } from "@/lib/auth";
 import type { Category, SopPost } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
@@ -44,6 +44,7 @@ export function CategoryManager() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [modalError, setModalError] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
@@ -57,6 +58,7 @@ export function CategoryManager() {
           return;
         }
 
+        setIsAdmin(isAdminSession(storedSession));
         setSessionChecked(true);
       });
     }, 0);
@@ -267,7 +269,7 @@ export function CategoryManager() {
                 SOP categories
               </h1>
               <p className="max-w-2xl text-sm font-semibold leading-6 text-slate-500 dark:text-slate-400">
-                Create, rename, and remove SOP categories from the existing FastAPI category endpoints.
+                Create categories for SOP grouping. Editing and deletion are limited to admins.
               </p>
             </header>
 
@@ -347,31 +349,37 @@ export function CategoryManager() {
                             {formatDate(category.created_at)}
                           </td>
                           <td className="px-4 py-4">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => openEditModal(category)}
-                              >
-                                <PenLine className="h-4 w-4" />
-                                Edit
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="danger"
-                                size="sm"
-                                onClick={() => onDelete(category)}
-                                disabled={deletingId === category.id}
-                              >
-                                {deletingId === category.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                                Delete
-                              </Button>
-                            </div>
+                            {isAdmin ? (
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => openEditModal(category)}
+                                >
+                                  <PenLine className="h-4 w-4" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => onDelete(category)}
+                                  disabled={deletingId === category.id}
+                                >
+                                  {deletingId === category.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                  Delete
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="block text-right text-xs font-semibold text-slate-400">
+                                Admin only
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))}

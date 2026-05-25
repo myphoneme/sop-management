@@ -246,6 +246,16 @@ export async function deleteUser(id: number) {
   });
 }
 
+export async function uploadContentImage(file: File) {
+  const body = new FormData();
+  body.append("file", file);
+
+  return request<{ url: string }>("/upload", {
+    method: "POST",
+    body,
+  });
+}
+
 export async function createSop(payload: SopPayload) {
   const body = new FormData();
   body.append("category_id", String(payload.categoryId));
