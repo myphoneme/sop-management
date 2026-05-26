@@ -45,5 +45,5 @@ export type SopPayload = {
   title: string;
   categoryId: number;
   content: string;
-  image: File;
+  image?: File | null;
 };

@@ -308,6 +308,81 @@ textarea {
   max-width: 100%;
 }
 
+.sop-content table,
+.sop-editor table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1.25rem 0;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+}
+
+.sop-content th,
+.sop-content td,
+.sop-editor th,
+.sop-editor td {
+  min-width: 4rem;
+  border: 1px solid #cbd5e1;
+  padding: 0.55rem 0.7rem;
+  vertical-align: top;
+}
+
+.sop-content th,
+.sop-editor th {
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.sop-content td,
+.sop-editor td {
+  background: #ffffff;
+}
+
+.sop-editor .selectedCell::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  content: "";
+  background: rgba(244, 121, 32, 0.14);
+}
+
+.sop-editor .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -2px;
+  width: 4px;
+  pointer-events: none;
+  background: #f47920;
+}
+
+.sop-editor.resize-cursor {
+  cursor: col-resize;
+}
+
+.dark .sop-content table,
+.dark .sop-editor table,
+.dark .sop-content th,
+.dark .sop-content td,
+.dark .sop-editor th,
+.dark .sop-editor td {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.dark .sop-content th,
+.dark .sop-editor th {
+  background: #1f2937;
+  color: #f8fafc;
+}
+
+.dark .sop-content td,
+.dark .sop-editor td {
+  background: #111827;
+}
+
 .sop-content .editor-image-block {
   display: block;
   max-width: 100%;

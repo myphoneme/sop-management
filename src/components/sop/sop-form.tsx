@@ -107,14 +107,14 @@ export function SopForm({ mode, sopId }: SopFormProps) {
     title.trim().length > 2 &&
     Number(categoryId) > 0 &&
     stripHtml(content).length > 5 &&
-    Boolean(image);
+    (mode === "edit" ? Boolean(existingSop?.image || image) : Boolean(image));
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
 
-    if (!image) {
-      const message = "Cover image is required by the current backend.";
+    if (mode === "create" && !image) {
+      const message = "Cover image is required.";
       setError(message);
       showToast({
         tone: "error",
@@ -131,7 +131,7 @@ export function SopForm({ mode, sopId }: SopFormProps) {
         title: title.trim(),
         categoryId: Number(categoryId),
         content,
-        image,
+        image: image || null,
       };
 
       const saved =
