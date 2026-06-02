@@ -32,7 +32,7 @@ export function SopForm({ mode, sopId }: SopFormProps) {
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [tagsValue, setTagsValue] = useState("");
-  const [status, setStatus] = useState("Draft");
+  const [status] = useState("Draft");
   const [content, setContent] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
@@ -238,6 +238,7 @@ export function SopForm({ mode, sopId }: SopFormProps) {
                 </label>
               </div>
 
+              {/* Status dropdown hidden until backend status workflow is designed.
               <div className="grid gap-3 xl:grid-cols-[180px_minmax(0,1fr)]">
                 <label className="grid gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Status
@@ -252,6 +253,7 @@ export function SopForm({ mode, sopId }: SopFormProps) {
                   </Select>
                 </label>
               </div>
+              */}
 
               <div className="grid min-w-0 gap-2">
                 <label className="grid gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
