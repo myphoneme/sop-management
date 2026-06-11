@@ -13,6 +13,8 @@ export type Category = {
   updated_at?: string | null;
 };
 
+export type SopVisibility = "draft" | "private" | "public";
+
 export type SopPost = {
   id: number;
   category_id: number;
@@ -23,6 +25,7 @@ export type SopPost = {
   created_at?: string | null;
   updated_at?: string | null;
   image?: string | null;
+  visibility?: SopVisibility;
   created_user?: Pick<ApiUser, "name" | "email"> | null;
   updated_user?: Pick<ApiUser, "name" | "email"> | null;
   category?: Category | null;
@@ -45,5 +48,6 @@ export type SopPayload = {
   title: string;
   categoryId: number;
   content: string;
+  visibility: SopVisibility;
   image?: File | null;
 };

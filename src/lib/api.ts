@@ -261,6 +261,7 @@ export async function createSop(payload: SopPayload) {
   body.append("category_id", String(payload.categoryId));
   body.append("title", payload.title);
   body.append("post", payload.content);
+  body.append("visibility", payload.visibility);
   if (!payload.image) {
     throw new Error("Cover image is required.");
   }
@@ -278,6 +279,7 @@ export async function updateSop(id: number, payload: SopPayload) {
   body.append("category_id", String(payload.categoryId));
   body.append("title", payload.title);
   body.append("post", payload.content);
+  body.append("visibility", payload.visibility);
   if (payload.image) {
     body.append("image", payload.image);
   }

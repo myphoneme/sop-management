@@ -40,6 +40,7 @@ export function SopManager({ scope = "all" }: SopManagerProps) {
   const [sessionChecked, setSessionChecked] = useState(false);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
+  const [visibilityFilter, setVisibilityFilter] = useState<"all" | "draft" | "private" | "public">("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -124,6 +125,7 @@ export function SopManager({ scope = "all" }: SopManagerProps) {
           post.created_user?.email === session.user.email
         );
       })
+      .filter((post) => visibilityFilter === "all" || (post.visibility || "public") === visibilityFilter)
       .filter((post) => categoryId === "all" || String(post.category_id) === categoryId)
       .filter((post) => {
         if (!normalized) {
@@ -135,7 +137,21 @@ export function SopManager({ scope = "all" }: SopManagerProps) {
           .includes(normalized);
       })
       .toSorted((a, b) => getPostTime(b) - getPostTime(a) || b.id - a.id);
-  }, [categoryId, posts, query, scope, session]);
+  }, [categoryId, posts, query, scope, session, visibilityFilter]);
+
+  const visibilityCounts = useMemo(() => {
+    return posts.reduce(
+      (acc, post) => {
+        const visibility = post.visibility || "public";
+        acc.all += 1;
+        if (visibility === "draft" || visibility === "private" || visibility === "public") {
+          acc[visibility] += 1;
+        }
+        return acc;
+      },
+      { all: 0, draft: 0, private: 0, public: 0 },
+    );
+  }, [posts]);
 
   const isAdmin = isAdminSession(session);
   const canManagePost = (post: SopPost) =>
@@ -229,6 +245,31 @@ export function SopManager({ scope = "all" }: SopManagerProps) {
               </Link>
             </Button>
           </div>
+          <div className="flex flex-wrap gap-2 border-b border-slate-200 px-4 py-3 sm:px-5 dark:border-white/10">
+            {[
+              ["all", "All visible", visibilityCounts.all],
+              ["draft", "Drafts", visibilityCounts.draft],
+              ["private", "Private", visibilityCounts.private],
+              ["public", "Public", visibilityCounts.public],
+            ].map(([value, label, count]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setVisibilityFilter(value as "all" | "draft" | "private" | "public");
+                  setCurrentPage(1);
+                }}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-wide transition",
+                  visibilityFilter === value
+                    ? "border-orange-300 bg-orange-50 text-[#cf5f0d] dark:border-orange-400/30 dark:bg-orange-500/10 dark:text-orange-300"
+                    : "border-slate-200 bg-white text-slate-500 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:text-white",
+                )}
+              >
+                {label} ({count})
+              </button>
+            ))}
+          </div>
 
           <div className="flex flex-wrap gap-2 border-b border-slate-200 px-4 py-3 sm:px-5 dark:border-white/10">
             <label className="relative min-w-64 flex-1">
@@ -291,6 +332,7 @@ export function SopManager({ scope = "all" }: SopManagerProps) {
                     <th className="px-4 py-3">Cover</th>
                     <th className="px-4 py-3">Title</th>
                     <th className="px-4 py-3">Category</th>
+                    <th className="px-4 py-3">Visibility</th>
                     <th className="px-4 py-3">Owner</th>
                     <th className="px-4 py-3">Length</th>
                     <th className="px-4 py-3">Created</th>
@@ -300,6 +342,7 @@ export function SopManager({ scope = "all" }: SopManagerProps) {
                 <tbody className="divide-y divide-slate-200 dark:divide-white/10">
                   {paginatedPosts.map((post) => {
                     const imageUrl = resolveAssetUrl(post.image);
+                    const visibility = post.visibility || "public";
 
                     return (
                       <tr key={post.id} className="align-middle transition hover:bg-slate-50 dark:hover:bg-white/[0.03]">
@@ -332,6 +375,11 @@ export function SopManager({ scope = "all" }: SopManagerProps) {
                         </td>
                         <td className="px-4 py-3">
                           <CategoryChip label={post.category?.category_name || "Uncategorized"} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge tone={visibility === "draft" ? "amber" : visibility === "private" ? "violet" : "emerald"}>
+                            {visibility}
+                          </Badge>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex min-w-0 items-center gap-2">

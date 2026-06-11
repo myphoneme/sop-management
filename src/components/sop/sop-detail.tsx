@@ -29,6 +29,8 @@ export function SopDetail({ id }: { id: number }) {
       sop.created_by === session?.user.id ||
       sop.created_user?.email === session?.user.email
     : false;
+  const visibility = sop?.visibility || "public";
+  const visibilityTone = visibility === "draft" ? "amber" : visibility === "private" ? "violet" : "emerald";
 
   useEffect(() => {
     let active = true;
@@ -101,7 +103,7 @@ export function SopDetail({ id }: { id: number }) {
           </div>
         ) : error || !sop ? (
           <div className="rounded-lg border border-rose-200 bg-rose-50 p-6 text-sm font-semibold text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200">
-            {error || "SOP not found."}
+            {error.includes("access") ? "You do not have access to this SOP." : error || "SOP not found."}
           </div>
         ) : (
           <>
@@ -109,6 +111,7 @@ export function SopDetail({ id }: { id: number }) {
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone="blue">{sop.category?.category_name || "Uncategorized"}</Badge>
                 <Badge tone="slate">SOP-{sop.id}</Badge>
+                <Badge tone={visibilityTone}>{visibility}</Badge>
               </div>
               <h1 className="max-w-4xl text-4xl font-black leading-[1.05] tracking-normal text-slate-950 dark:text-white sm:text-5xl">
                 {sop.title}

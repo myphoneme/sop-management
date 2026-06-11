@@ -9,6 +9,8 @@ import { resolveAssetUrl } from "@/lib/api";
 export function SopCard({ sop, priority = false }: { sop: SopPost; priority?: boolean }) {
   const imageUrl = resolveAssetUrl(sop.image);
   const excerpt = stripHtml(sop.post).slice(0, 150);
+  const visibility = sop.visibility || "public";
+  const visibilityTone = visibility === "draft" ? "amber" : visibility === "private" ? "violet" : "emerald";
 
   return (
     <Link
@@ -30,6 +32,9 @@ export function SopCard({ sop, priority = false }: { sop: SopPost; priority?: bo
         )}
         <div className="absolute left-3 top-3 z-10">
           <Badge tone="blue">{sop.category?.category_name || "Uncategorized"}</Badge>
+        </div>
+        <div className="absolute right-3 top-3 z-10">
+          <Badge tone={visibilityTone}>{visibility}</Badge>
         </div>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/8 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 dark:from-black/20" />
       </div>
