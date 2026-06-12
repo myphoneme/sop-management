@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FileImage, ImagePlus, Loader2, Save } from "lucide-react";
+import { FileImage, FilePlus, FileText, ImagePlus, Loader2, Save, X } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import { RichEditor } from "@/components/sop/rich-editor";
@@ -13,7 +13,7 @@ import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { createSop, getCategories, getPost, resolveAssetUrl, updateSop } from "@/lib/api";
 import { getCurrentSession, loginPath } from "@/lib/auth";
-import type { Category, SopPost, SopVisibility } from "@/lib/types";
+import type { Category, SopDocument, SopPost, SopVisibility } from "@/lib/types";
 import { stripHtml } from "@/lib/utils";
 
 type SopFormProps = {
@@ -22,6 +22,30 @@ type SopFormProps = {
 };
 
 const MAX_COVER_IMAGE_BYTES = 1024 * 1024;
+const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const ALLOWED_COVER_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const ALLOWED_DOCUMENT_EXTENSIONS = new Set([
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".ppt",
+  ".pptx",
+  ".txt",
+  ".csv",
+]);
+
+function getFileExtension(fileName: string) {
+  const index = fileName.lastIndexOf(".");
+  return index >= 0 ? fileName.slice(index).toLowerCase() : "";
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export function SopForm({ mode, sopId }: SopFormProps) {
   const { pathname } = useLocation();
@@ -35,6 +59,9 @@ export function SopForm({ mode, sopId }: SopFormProps) {
   const [publishVisibility, setPublishVisibility] = useState<SopVisibility>("public");
   const [content, setContent] = useState("");
   const [image, setImage] = useState<File | null>(null);
+  const [existingDocuments, setExistingDocuments] = useState<SopDocument[]>([]);
+  const [newDocuments, setNewDocuments] = useState<File[]>([]);
+  const [removedDocumentIds, setRemovedDocumentIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -83,6 +110,7 @@ export function SopForm({ mode, sopId }: SopFormProps) {
           setTitle(sopData.title);
           setCategoryId(String(sopData.category_id));
           setContent(sopData.post || "");
+          setExistingDocuments(sopData.documents ?? []);
           if (sopData.visibility === "private" || sopData.visibility === "public") {
             setPublishVisibility(sopData.visibility);
           } else {
@@ -145,6 +173,8 @@ export function SopForm({ mode, sopId }: SopFormProps) {
         content,
         visibility,
         image: image || null,
+        documents: newDocuments,
+        removeDocumentIds: removedDocumentIds,
       };
 
       const saved =
@@ -183,9 +213,20 @@ export function SopForm({ mode, sopId }: SopFormProps) {
       return;
     }
 
+    if (!ALLOWED_COVER_TYPES.has(file.type)) {
+      const message = "Cover image must be JPG, PNG, or WEBP.";
+      setImage(null);
+      setError(message);
+      showToast({
+        tone: "error",
+        title: "Unsupported cover image",
+        description: message,
+      });
+      return;
+    }
+
     if (file.size > MAX_COVER_IMAGE_BYTES) {
-      const message =
-        "Cover image must be 1 MB or smaller. The deployed server currently rejects larger uploads.";
+      const message = "Cover image must be 1 MB or smaller.";
       setImage(null);
       setError(message);
       showToast({
@@ -200,11 +241,59 @@ export function SopForm({ mode, sopId }: SopFormProps) {
     setImage(file);
   }
 
+  function onDocumentsChange(fileList: FileList | null) {
+    if (!fileList?.length) return;
+
+    const accepted: File[] = [];
+    for (const file of Array.from(fileList)) {
+      const extension = getFileExtension(file.name);
+      if (!ALLOWED_DOCUMENT_EXTENSIONS.has(extension)) {
+        const message = "Related documents must be PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, or CSV.";
+        setError(message);
+        showToast({
+          tone: "error",
+          title: "Unsupported document",
+          description: message,
+        });
+        return;
+      }
+
+      if (file.size > MAX_DOCUMENT_BYTES) {
+        const message = `Each related document must be 10 MB or smaller (${file.name}).`;
+        setError(message);
+        showToast({
+          tone: "error",
+          title: "Document is too large",
+          description: message,
+        });
+        return;
+      }
+
+      accepted.push(file);
+    }
+
+    setError("");
+    setNewDocuments((current) => [...current, ...accepted]);
+  }
+
+  function removeExistingDocument(documentId: number) {
+    setExistingDocuments((current) => current.filter((document) => document.id !== documentId));
+    setRemovedDocumentIds((current) =>
+      current.includes(documentId) ? current : [...current, documentId],
+    );
+  }
+
+  function removeNewDocument(index: number) {
+    setNewDocuments((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  const visibleExistingDocuments = existingDocuments;
+
   return (
     <AppShell variant="dashboard">
-      <div className="mx-auto grid w-full max-w-[1440px] gap-4 px-4 pb-4 lg:px-6">
-        <header className="grid gap-1">
-          <h1 className="text-2xl font-black tracking-normal text-slate-950 dark:text-white sm:text-[2rem]">
+      <div className="mx-auto grid w-full max-w-[1440px] gap-2">
+        <header>
+          <h1 className="text-xl font-black tracking-normal text-slate-950 dark:text-white sm:text-2xl">
             {mode === "edit" ? "Update SOP" : "Create a new SOP"}
           </h1>
         </header>
@@ -216,29 +305,29 @@ export function SopForm({ mode, sopId }: SopFormProps) {
         ) : (
           <form
             onSubmit={onSubmit}
-            className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_320px]"
+            className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px]"
           >
-            <section className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#0d1015]/95 dark:shadow-black/20">
-              <div className="grid min-w-0 items-end gap-3 xl:grid-cols-[minmax(0,1fr)_240px_250px]">
-                <div className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <section className="flex min-h-0 min-w-0 flex-col gap-2.5 rounded-xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#0d1015]/95 dark:shadow-black/20">
+              <div className="grid min-w-0 items-end gap-2.5 xl:grid-cols-[minmax(0,1fr)_220px_220px]">
+                <div className="grid min-w-0 gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
                   <label htmlFor="sop-title">SOP title</label>
                   <Input
                     id="sop-title"
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
                     placeholder="e.g., Monthly database backup verification"
-                    className="h-11 border-slate-200 bg-white text-slate-950 placeholder:text-slate-400 dark:border-white/10 dark:bg-[#12151b] dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="h-10 border-slate-200 bg-white text-slate-950 placeholder:text-slate-400 dark:border-white/10 dark:bg-[#12151b] dark:text-slate-100 dark:placeholder:text-slate-500"
                     required
                   />
                 </div>
 
-                <div className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                <div className="grid min-w-0 gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
                   <label htmlFor="sop-category">Category</label>
                   <Select
                     id="sop-category"
                     value={categoryId}
                     onChange={(event) => setCategoryId(event.target.value)}
-                    className="h-11 border-slate-200 bg-white text-slate-950 dark:border-white/10 dark:bg-[#12151b] dark:text-slate-100"
+                    className="h-10 border-slate-200 bg-white text-slate-950 dark:border-white/10 dark:bg-[#12151b] dark:text-slate-100"
                     required
                   >
                     <option value="">Select category</option>
@@ -250,37 +339,38 @@ export function SopForm({ mode, sopId }: SopFormProps) {
                   </Select>
                 </div>
 
-                <div className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                <div className="grid min-w-0 gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
                   <label htmlFor="sop-tags">Tags / Subcategories</label>
                   <Input
                     id="sop-tags"
                     value={tagsValue}
                     onChange={(event) => setTagsValue(event.target.value)}
                     placeholder="Add tags or subcategories"
-                    className="h-11 border-slate-200 bg-white text-slate-950 placeholder:text-slate-400 dark:border-white/10 dark:bg-[#12151b] dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="h-10 border-slate-200 bg-white text-slate-950 placeholder:text-slate-400 dark:border-white/10 dark:bg-[#12151b] dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
               </div>
 
-              <div className="grid min-w-0 gap-2 pt-1">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <div className="flex min-h-[280px] flex-col gap-1.5 lg:min-h-0 lg:flex-1">
+                <label className="shrink-0 text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Procedure content
                 </label>
                 <RichEditor
+                  fillHeight
                   value={content}
                   onChange={setContent}
-                  className="[&_.sop-editor]:min-h-[340px] [&_.sop-editor]:bg-white [&_.sop-editor]:px-4 [&_.sop-editor]:py-4 [&_.sop-editor]:text-[13px] [&_.sop-editor]:leading-6 [&_.sop-editor]:text-slate-800 [&_.sop-editor_p]:text-slate-800 [&_.sop-editor_li]:text-slate-800 dark:[&_.sop-editor]:bg-[#101318] dark:[&_.sop-editor]:text-slate-100 dark:[&_.sop-editor_p]:text-slate-100 dark:[&_.sop-editor_li]:text-slate-100"
+                  className="min-h-[220px] flex-1 lg:min-h-0 [&_.sop-editor]:bg-white [&_.sop-editor]:px-3 [&_.sop-editor]:py-3 [&_.sop-editor]:text-[13px] [&_.sop-editor]:leading-6 [&_.sop-editor]:text-slate-800 [&_.sop-editor_p]:text-slate-800 [&_.sop-editor_li]:text-slate-800 dark:[&_.sop-editor]:bg-[#101318] dark:[&_.sop-editor]:text-slate-100 dark:[&_.sop-editor_p]:text-slate-100 dark:[&_.sop-editor_li]:text-slate-100"
                 />
               </div>
             </section>
 
-            <aside className="grid min-w-0 content-start gap-3">
-              <section className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#0d1015]/95 dark:shadow-black/20">
-                <h2 className="flex items-center gap-2 text-base font-black tracking-normal text-slate-950 dark:text-white">
-                  <ImagePlus className="h-5 w-5" />
+            <aside className="grid min-w-0 gap-2 self-stretch">
+              <section className="grid min-w-0 gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#0d1015]/95 dark:shadow-black/20">
+                <h2 className="flex items-center gap-2 text-sm font-black tracking-normal text-slate-950 dark:text-white">
+                  <ImagePlus className="h-4 w-4" />
                   Cover image
                 </h2>
-                <label className="grid aspect-[1.25/1] min-w-0 cursor-pointer place-items-center rounded-xl border border-dashed border-orange-200 bg-orange-50/40 px-4 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-[#101318] dark:text-slate-400">
+                <label className="grid h-36 min-w-0 cursor-pointer place-items-center rounded-lg border border-dashed border-orange-200 bg-orange-50/40 px-3 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-[#101318] dark:text-slate-400">
                   {existingSop?.image && !image ? (
                     <img
                       src={resolveAssetUrl(existingSop.image)}
@@ -295,56 +385,121 @@ export function SopForm({ mode, sopId }: SopFormProps) {
                       <span className="min-w-0 truncate">{image.name}</span>
                     </div>
                   ) : (
-                    <div className="grid gap-2">
-                      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                    <div className="grid gap-1">
+                      <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                         ☁
                       </div>
-                      <p>Drag and drop an image here</p>
-                      <p className="text-[#f47920]">or click to browse</p>
-                      <p className="text-xs">JPG, PNG up to 1MB</p>
+                      <p className="text-xs">Drop image or click to browse</p>
+                      <p className="text-[11px] text-slate-400">JPG, PNG, or WEBP · 1 MB max</p>
                     </div>
                   )}
                   <Input
                     type="file"
-                    accept="image/*"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                     className="sr-only"
                     onChange={(event) => onImageChange(event.target.files?.[0] || null)}
                   />
                 </label>
               </section>
 
-              <section className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#0d1015]/95 dark:shadow-black/20">
-                <h2 className="flex items-center gap-2 text-base font-black tracking-normal text-slate-950 dark:text-white">
-                  <span className="text-lg">◔</span>
+              <section className="grid min-w-0 gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#0d1015]/95 dark:shadow-black/20">
+                <h2 className="flex items-center gap-2 text-sm font-black tracking-normal text-slate-950 dark:text-white">
+                  <FilePlus className="h-4 w-4" />
+                  Related documents
+                </h2>
+                <p className="text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+                  Optional. PDF, DOC, XLS, PPT, TXT, CSV · 10 MB each.
+                </p>
+                <label className="grid min-h-20 cursor-pointer place-items-center rounded-lg border border-dashed border-slate-200 bg-slate-50/70 px-3 py-3 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-[#101318] dark:text-slate-400">
+                  <div className="grid gap-1">
+                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <p className="text-xs">Add documents</p>
+                  </div>
+                  <Input
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+                    className="sr-only"
+                    onChange={(event) => {
+                      onDocumentsChange(event.target.files);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                {visibleExistingDocuments.length || newDocuments.length ? (
+                  <ul className="grid gap-2">
+                    {visibleExistingDocuments.map((document) => (
+                      <li
+                        key={`existing-${document.id}`}
+                        className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-white/10 dark:bg-[#101318]"
+                      >
+                        <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold text-slate-800 dark:text-slate-100">
+                            {document.file_name}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {formatFileSize(document.file_size)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeExistingDocument(document.id)}
+                          className="rounded-md p-1 text-slate-500 hover:bg-white hover:text-rose-600 dark:hover:bg-white/5"
+                          aria-label={`Remove ${document.file_name}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                    {newDocuments.map((document, index) => (
+                      <li
+                        key={`new-${document.name}-${index}`}
+                        className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-white/10 dark:bg-[#101318]"
+                      >
+                        <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold text-slate-800 dark:text-slate-100">
+                            {document.name}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {formatFileSize(document.size)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeNewDocument(index)}
+                          className="rounded-md p-1 text-slate-500 hover:bg-white hover:text-rose-600 dark:hover:bg-white/5"
+                          aria-label={`Remove ${document.name}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+
+              <section className="grid min-w-0 gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#0d1015]/95 dark:shadow-black/20">
+                <h2 className="text-sm font-black tracking-normal text-slate-950 dark:text-white">
                   Preview
                 </h2>
-                <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#101318]">
+                <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 dark:border-white/10 dark:bg-[#101318]">
                   <Badge tone={publishVisibility === "private" ? "violet" : "emerald"} className="w-fit">
                     {publishVisibility === "private" ? "Private" : "Public"}
                   </Badge>
-                  <h3 className="line-clamp-2 text-lg font-black leading-tight tracking-normal text-slate-950 dark:text-white">
+                  <h3 className="line-clamp-2 text-sm font-black leading-tight tracking-normal text-slate-950 dark:text-white">
                     {title || "Untitled SOP"}
                   </h3>
-                  <p className="line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  <p className="line-clamp-2 text-[11px] leading-4 text-slate-500 dark:text-slate-400">
                     {previewText || "Content preview"}
                   </p>
-                  <div className="grid gap-2 text-sm text-slate-500 dark:text-slate-400">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-white/5">
-                        {categories.find((category) => String(category.id) === categoryId)
-                          ?.category_name || "No category"}
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-200 dark:bg-white/5">
-                      <div className="h-2 w-[86%] rounded-full bg-slate-300 dark:bg-white/10" />
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-200 dark:bg-white/5">
-                      <div className="h-2 w-[72%] rounded-full bg-slate-300 dark:bg-white/10" />
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-200 dark:bg-white/5">
-                      <div className="h-2 w-[62%] rounded-full bg-slate-300 dark:bg-white/10" />
-                    </div>
-                  </div>
+                  <span className="w-fit rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] dark:border-white/10 dark:bg-white/5">
+                    {categories.find((category) => String(category.id) === categoryId)
+                      ?.category_name || "No category"}
+                  </span>
                 </div>
               </section>
 
@@ -354,13 +509,13 @@ export function SopForm({ mode, sopId }: SopFormProps) {
                 </div>
               ) : null}
 
-              <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#0d1015]/95 dark:shadow-black/20">
-                <label className="col-span-2 grid gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-950/10 dark:border-white/10 dark:bg-[#0d1015]/95 dark:shadow-black/20">
+                <label className="col-span-2 grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Publish visibility
                   <Select
                     value={publishVisibility}
                     onChange={(event) => setPublishVisibility(event.target.value as SopVisibility)}
-                    className="h-11 border-slate-200 bg-white text-slate-950 dark:border-white/10 dark:bg-[#12151b] dark:text-slate-100"
+                    className="h-10 border-slate-200 bg-white text-slate-950 dark:border-white/10 dark:bg-[#12151b] dark:text-slate-100"
                   >
                     <option value="public">Public - everyone can view</option>
                     <option value="private">Private - logged-in users only</option>
@@ -369,13 +524,13 @@ export function SopForm({ mode, sopId }: SopFormProps) {
                 <Button
                   type="button"
                   variant="secondary"
-                  className="h-11"
+                  className="h-10"
                   disabled={saving || !canSaveDraft}
                   onClick={() => saveSop("draft")}
                 >
                   Save draft
                 </Button>
-                <Button type="submit" className="h-11" disabled={saving || !canPublish}>
+                <Button type="submit" className="h-10" disabled={saving || !canPublish}>
                   <Save className="h-4 w-4" />
                   Publish SOP
                 </Button>

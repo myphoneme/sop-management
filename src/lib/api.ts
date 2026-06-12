@@ -262,10 +262,15 @@ export async function createSop(payload: SopPayload) {
   body.append("title", payload.title);
   body.append("post", payload.content);
   body.append("visibility", payload.visibility);
-  if (!payload.image) {
+  if (payload.visibility !== "draft" && !payload.image) {
     throw new Error("Cover image is required.");
   }
-  body.append("image", payload.image);
+  if (payload.image) {
+    body.append("image", payload.image);
+  }
+  for (const file of payload.documents ?? []) {
+    body.append("documents", file);
+  }
 
   return request<SopPost>("/posts", {
     method: "POST",
@@ -282,6 +287,12 @@ export async function updateSop(id: number, payload: SopPayload) {
   body.append("visibility", payload.visibility);
   if (payload.image) {
     body.append("image", payload.image);
+  }
+  for (const file of payload.documents ?? []) {
+    body.append("documents", file);
+  }
+  for (const documentId of payload.removeDocumentIds ?? []) {
+    body.append("remove_document_ids", String(documentId));
   }
 
   return request<SopPost>(`/posts/${id}`, {

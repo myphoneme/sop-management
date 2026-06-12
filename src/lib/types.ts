@@ -15,6 +15,15 @@ export type Category = {
 
 export type SopVisibility = "draft" | "private" | "public";
 
+export type SopDocument = {
+  id: number;
+  file_name: string;
+  file_path: string;
+  content_type: string;
+  file_size: number;
+  created_at?: string | null;
+};
+
 export type SopPost = {
   id: number;
   category_id: number;
@@ -29,6 +38,7 @@ export type SopPost = {
   created_user?: Pick<ApiUser, "name" | "email"> | null;
   updated_user?: Pick<ApiUser, "name" | "email"> | null;
   category?: Category | null;
+  documents?: SopDocument[];
 };
 
 export type LoginResponse = {
@@ -50,4 +60,6 @@ export type SopPayload = {
   content: string;
   visibility: SopVisibility;
   image?: File | null;
+  documents?: File[];
+  removeDocumentIds?: number[];
 };

@@ -274,7 +274,7 @@ export function AppShell({ children, variant = "public" }: AppShellProps) {
       <div aria-hidden="true" className="h-20 shrink-0" />
 
       {variant === "dashboard" ? (
-        <div className="mx-auto grid w-full max-w-[1600px] gap-4 px-3 py-4 sm:px-4 lg:block lg:px-5 lg:pl-[304px]">
+        <div className="mx-auto grid w-full max-w-[1600px] gap-2 px-3 py-2 sm:px-4 lg:block lg:px-5 lg:pl-[304px]">
           <aside className="hidden lg:block">
             <div
               className={cn(

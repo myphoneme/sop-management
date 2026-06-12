@@ -6,8 +6,12 @@ import {
   ArrowLeft,
   CalendarDays,
   Clock3,
+  Download,
   Edit3,
+  FileSpreadsheet,
+  FileText,
   Loader2,
+  Presentation,
   UserRound,
 } from "lucide-react";
 
@@ -16,8 +20,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getPost, resolveAssetUrl } from "@/lib/api";
 import { getCurrentSession, isAdminSession, type StoredSession } from "@/lib/auth";
-import type { SopPost } from "@/lib/types";
+import type { SopDocument, SopPost } from "@/lib/types";
 import { formatDate, readingMinutes } from "@/lib/utils";
+
+function getDocumentIcon(document: SopDocument) {
+  const extension = document.file_name.split(".").pop()?.toLowerCase() ?? "";
+  if (["xls", "xlsx", "csv"].includes(extension)) {
+    return FileSpreadsheet;
+  }
+  if (["ppt", "pptx"].includes(extension)) {
+    return Presentation;
+  }
+  return FileText;
+}
+
+function getDocumentTypeLabel(document: SopDocument) {
+  const extension = document.file_name.split(".").pop()?.toUpperCase() ?? "FILE";
+  return extension;
+}
 
 export function SopDetail({ id }: { id: number }) {
   const [sop, setSop] = useState<SopPost | null>(null);
@@ -152,6 +172,50 @@ export function SopDetail({ id }: { id: number }) {
                 dangerouslySetInnerHTML={{ __html: sop.post || "" }}
               />
             </div>
+
+            {sop.documents?.length ? (
+              <section className="grid gap-4 rounded-lg border border-orange-100 bg-white p-5 shadow-sm dark:border-[#242424] dark:bg-[#101010] sm:p-6">
+                <div className="grid gap-1">
+                  <h2 className="text-xl font-black tracking-normal text-slate-950 dark:text-white">
+                    Related documents
+                  </h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Supporting files attached to this SOP.
+                  </p>
+                </div>
+                <ul className="grid gap-3">
+                  {sop.documents.map((document) => {
+                    const Icon = getDocumentIcon(document);
+                    const documentUrl = resolveAssetUrl(document.file_path);
+
+                    return (
+                      <li
+                        key={document.id}
+                        className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#151515]"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-black dark:text-slate-300">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold text-slate-900 dark:text-white">
+                            {document.file_name}
+                          </p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            {getDocumentTypeLabel(document)}
+                          </p>
+                        </div>
+                        <Button asChild variant="secondary" size="sm">
+                          <a href={documentUrl} target="_blank" rel="noopener noreferrer" download={document.file_name}>
+                            <Download className="h-4 w-4" />
+                            Open
+                          </a>
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ) : null}
           </>
         )}
       </article>

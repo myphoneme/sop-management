@@ -68,6 +68,7 @@ type RichEditorProps = {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  fillHeight?: boolean;
 };
 
 type ResizableImageAttrs = {
@@ -318,7 +319,7 @@ function ResizableImageView(props: ReactNodeViewProps) {
   );
 }
 
-export function RichEditor({ value, onChange, className }: RichEditorProps) {
+export function RichEditor({ value, onChange, className, fillHeight = false }: RichEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -350,8 +351,9 @@ export function RichEditor({ value, onChange, className }: RichEditorProps) {
     content: value || "",
     editorProps: {
       attributes: {
-        class:
-          "sop-editor min-h-[360px] w-full px-5 py-5 text-sm leading-7 text-slate-800 outline-none dark:text-slate-100",
+        class: fillHeight
+          ? "sop-editor h-full min-h-0 w-full px-5 py-5 text-sm leading-7 text-slate-800 outline-none dark:text-slate-100"
+          : "sop-editor min-h-[360px] w-full px-5 py-5 text-sm leading-7 text-slate-800 outline-none dark:text-slate-100",
       },
     },
     onUpdate: ({ editor }) => {
@@ -439,10 +441,11 @@ export function RichEditor({ value, onChange, className }: RichEditorProps) {
     <div
       className={cn(
         "overflow-hidden rounded-lg border border-orange-100 bg-white shadow-sm dark:border-[#242424] dark:bg-[#101010]",
+        fillHeight && "flex min-h-0 flex-col",
         className,
       )}
     >
-      <div className="flex flex-wrap items-center gap-1 border-b border-orange-100 bg-orange-50/80 p-2 dark:border-[#f47920]/20 dark:bg-[#f47920]/10">
+      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-orange-100 bg-orange-50/80 p-2 dark:border-[#f47920]/20 dark:bg-[#f47920]/10">
         <ToolbarSelect label="Block style" value={currentBlock()} onChange={setBlock}>
           <option value="paragraph">Normal</option>
           <option value="h1">Heading 1</option>
@@ -636,7 +639,9 @@ export function RichEditor({ value, onChange, className }: RichEditorProps) {
           }}
         />
       </div>
-      <EditorContent editor={editor} />
+      <div className={cn(fillHeight && "min-h-0 flex-1 overflow-auto")}>
+        <EditorContent editor={editor} className={cn(fillHeight && "h-full [&_.sop-editor]:min-h-full")} />
+      </div>
     </div>
   );
 }
